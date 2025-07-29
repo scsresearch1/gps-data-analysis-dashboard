@@ -1,24 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  AppBar,
-  Toolbar,
   Typography,
-  Button,
-  Container,
+  Tabs,
+  Tab,
+  CircularProgress,
+  Alert,
   Grid,
   Card,
   CardContent,
-  Tabs,
-  Tab,
-  IconButton,
 } from '@mui/material';
 import {
-  Logout,
-  Science,
-  Timeline,
-  Map,
+  Timeline as TimelineIcon,
   Speed,
+  Explore,
   Satellite,
   Schedule,
 } from '@mui/icons-material';
@@ -67,7 +62,7 @@ const Dashboard = ({ onLogout }) => {
   const tabConfig = [
     {
       label: 'Spatio-Temporal Analysis',
-      icon: <Map />,
+      icon: <Explore />,
       component: <SpatioTemporalAnalysis data={data} loading={loading} />
     },
     {

@@ -7,7 +7,6 @@ import {
   CardContent,
   CircularProgress,
   Alert,
-  Chip,
   Modal,
   IconButton,
   Paper,
@@ -20,20 +19,15 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ComposedChart,
   BarChart,
   Bar,
-  PieChart,
-  Pie,
-  Cell,
+  AreaChart,
+  Area,
 } from 'recharts';
 import {
   Speed,
   Height,
   Explore,
-  DirectionsCar,
-  Terrain,
-  Satellite,
   Close,
   ZoomIn,
 } from '@mui/icons-material';
@@ -187,7 +181,7 @@ const SpatioTemporalAnalysis = ({ data, loading }) => {
       avgSatellites: avgSatellites.toFixed(1),
       signalQuality,
     };
-  }, [processedData]);
+  }, [processedData, processedData.length]);
 
   const speedDistribution = useMemo(() => {
     if (processedData.length === 0) return [];

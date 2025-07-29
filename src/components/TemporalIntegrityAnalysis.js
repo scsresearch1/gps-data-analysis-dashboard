@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   Grid,
   Typography,
@@ -7,10 +7,6 @@ import {
   CardContent,
   CircularProgress,
   Alert,
-  Chip,
-  Modal,
-  IconButton,
-  Paper,
 } from '@mui/material';
 import {
   LineChart,
@@ -22,19 +18,11 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
-  Histogram,
   AreaChart,
   Area,
 } from 'recharts';
-import {
-  Close,
-  ZoomIn,
-} from '@mui/icons-material';
 
 const TemporalIntegrityAnalysis = ({ data, loading }) => {
-  const [selectedChart, setSelectedChart] = useState(null);
-  const [modalOpen, setModalOpen] = useState(false);
-
   // Helper function to parse date correctly
   const parseDate = (dateString) => {
     try {
@@ -140,134 +128,6 @@ const TemporalIntegrityAnalysis = ({ data, loading }) => {
       reliability: ((1 - packetLossRate / 100) * 100).toFixed(2),
     };
   }, [processedData]);
-
-  const handleChartClick = (chartType) => {
-    setSelectedChart(chartType);
-    setModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setModalOpen(false);
-    setSelectedChart(null);
-  };
-
-  const renderChart = (chartType, data, height = 300) => {
-    const chartProps = {
-      data,
-      style: { cursor: 'pointer' },
-      onClick: () => handleChartClick(chartType),
-    };
-
-    switch (chartType) {
-      case 'timeGaps':
-        return (
-          <LineChart {...chartProps}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-            <XAxis 
-              dataKey="timeShort" 
-              stroke="#b0b0b0"
-              angle={-45}
-              textAnchor="end"
-              height={80}
-              interval="preserveStartEnd"
-            />
-            <YAxis stroke="#b0b0b0" />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#1a1a1a', 
-                border: '1px solid #333',
-                color: '#ffffff'
-              }}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="timeGap" 
-              stroke="#00bcd4" 
-              strokeWidth={2}
-              dot={false}
-            />
-          </LineChart>
-        );
-
-      case 'packetIntervals':
-        return (
-          <BarChart {...chartProps}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-            <XAxis 
-              dataKey="timeShort" 
-              stroke="#b0b0b0"
-              angle={-45}
-              textAnchor="end"
-              height={80}
-              interval="preserveStartEnd"
-            />
-            <YAxis stroke="#b0b0b0" />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#1a1a1a', 
-                border: '1px solid #333',
-                color: '#ffffff'
-              }}
-            />
-            <Bar 
-              dataKey="timeGap" 
-              fill={(entry) => entry.isGap ? '#f44336' : entry.isDrift ? '#ff9800' : '#4caf50'}
-            />
-          </BarChart>
-        );
-
-      case 'reliability':
-        return (
-          <AreaChart {...chartProps}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-            <XAxis 
-              dataKey="timeShort" 
-              stroke="#b0b0b0"
-              angle={-45}
-              textAnchor="end"
-              height={80}
-              interval="preserveStartEnd"
-            />
-            <YAxis stroke="#b0b0b0" />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#1a1a1a', 
-                border: '1px solid #333',
-                color: '#ffffff'
-              }}
-            />
-            <Area 
-              type="monotone" 
-              dataKey="packetIndex" 
-              fill="#00bcd4" 
-              fillOpacity={0.3}
-              stroke="#00bcd4"
-              strokeWidth={2}
-            />
-          </AreaChart>
-        );
-
-      case 'distribution':
-        return (
-          <BarChart {...chartProps}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-            <XAxis dataKey="name" stroke="#b0b0b0" />
-            <YAxis stroke="#b0b0b0" />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#1a1a1a', 
-                border: '1px solid #333',
-                color: '#ffffff'
-              }}
-            />
-            <Bar dataKey="value" fill="#00bcd4" />
-          </BarChart>
-        );
-
-      default:
-        return null;
-    }
-  };
 
   if (loading) {
     return (

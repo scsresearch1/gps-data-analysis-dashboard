@@ -7,7 +7,6 @@ import {
   CardContent,
   CircularProgress,
   Alert,
-  Chip,
   Modal,
   IconButton,
   Paper,
@@ -20,15 +19,15 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ScatterChart,
-  Scatter,
   BarChart,
   Bar,
-  PieChart,
-  Pie,
-  Cell,
+  ScatterChart,
+  Scatter,
 } from 'recharts';
 import {
+  Speed,
+  Explore,
+  Timeline,
   Close,
   ZoomIn,
 } from '@mui/icons-material';
