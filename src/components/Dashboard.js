@@ -9,6 +9,10 @@ import {
   Grid,
   Card,
   CardContent,
+  AppBar,
+  Toolbar,
+  IconButton,
+  Container,
 } from '@mui/material';
 import {
   Timeline as TimelineIcon,
@@ -16,6 +20,8 @@ import {
   Explore,
   Satellite,
   Schedule,
+  Science,
+  Logout,
 } from '@mui/icons-material';
 import SpatioTemporalAnalysis from './SpatioTemporalAnalysis';
 import MotionBehaviorAnalysis from './MotionBehaviorAnalysis';

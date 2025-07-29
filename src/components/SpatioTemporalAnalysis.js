@@ -10,6 +10,7 @@ import {
   Modal,
   IconButton,
   Paper,
+  Chip,
 } from '@mui/material';
 import {
   LineChart,
@@ -30,6 +31,8 @@ import {
   Explore,
   Close,
   ZoomIn,
+  DirectionsCar,
+  Satellite,
 } from '@mui/icons-material';
 
 const SpatioTemporalAnalysis = ({ data, loading }) => {
