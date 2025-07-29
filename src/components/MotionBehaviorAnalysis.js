@@ -25,9 +25,6 @@ import {
   Scatter,
 } from 'recharts';
 import {
-  Speed,
-  Explore,
-  Timeline,
   Close,
   ZoomIn,
 } from '@mui/icons-material';

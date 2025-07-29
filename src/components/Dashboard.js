@@ -4,8 +4,6 @@ import {
   Typography,
   Tabs,
   Tab,
-  CircularProgress,
-  Alert,
   Grid,
   Card,
   CardContent,
@@ -15,7 +13,6 @@ import {
   Container,
 } from '@mui/material';
 import {
-  Timeline as TimelineIcon,
   Speed,
   Explore,
   Satellite,

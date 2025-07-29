@@ -22,8 +22,6 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
-  AreaChart,
-  Area,
 } from 'recharts';
 import {
   Speed,
@@ -184,7 +182,7 @@ const SpatioTemporalAnalysis = ({ data, loading }) => {
       avgSatellites: avgSatellites.toFixed(1),
       signalQuality,
     };
-  }, [processedData, processedData.length]);
+  }, [processedData]);
 
   const speedDistribution = useMemo(() => {
     if (processedData.length === 0) return [];
@@ -207,7 +205,7 @@ const SpatioTemporalAnalysis = ({ data, loading }) => {
       name: direction,
       value: count,
     }));
-  }, [tripSummary]);
+  }, [tripSummary, processedData.length]);
 
   const handleChartClick = (chartType) => {
     setSelectedChart(chartType);
