@@ -7,8 +7,17 @@ import {
   CardContent,
   CircularProgress,
   Alert,
-  Modal,
-  IconButton,
+  Chip,
+  Divider,
+  LinearProgress,
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Switch,
+  FormControlLabel,
+  Slider,
   Paper,
 } from '@mui/material';
 import {
@@ -17,48 +26,75 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
   BarChart,
   Bar,
   ScatterChart,
   Scatter,
+  AreaChart,
+  Area,
+  PieChart,
+  Pie,
+  Cell,
 } from 'recharts';
 import {
-  Close,
-  ZoomIn,
+  Speed,
+  DirectionsWalk,
+  Warning,
+  TrendingUp,
+  Timeline,
+  Analytics,
+  PlayArrow,
+  Pause,
+  FilterList,
+  Settings,
+  Visibility,
+  VisibilityOff,
+  CenterFocusStrong,
+  Route,
+  Straighten,
+  AccessTime,
+  Satellite,
+  Height,
+  Navigation,
+  Timer,
+  SpeedDial,
+  SpeedDialAction,
+  SpeedDialIcon,
 } from '@mui/icons-material';
 
 const MotionBehaviorAnalysis = ({ data, loading }) => {
-  const [selectedChart, setSelectedChart] = useState(null);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedTimeRange, setSelectedTimeRange] = useState('all');
+  const [showAdvancedMetrics, setShowAdvancedMetrics] = useState(false);
+  const [animationSpeed, setAnimationSpeed] = useState(1000);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [speedThreshold, setSpeedThreshold] = useState(5);
 
   // Helper function to parse date correctly
   const parseDate = (dateString) => {
     try {
-      // Handle format: "29/07/2025 06:06:36"
       const [datePart, timePart] = dateString.split(' ');
       const [day, month, year] = datePart.split('/');
       const [hour, minute, second] = timePart.split(':');
       
-      // Create date with proper parameters (month is 0-indexed)
       const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second));
       
-      // Validate the date
       if (isNaN(date.getTime())) {
         console.error('Invalid date:', dateString);
-        return new Date(); // Fallback to current date
+        return new Date();
       }
       
       return date;
     } catch (error) {
       console.error('Error parsing date:', dateString, error);
-      return new Date(); // Fallback to current date
+      return new Date();
     }
   };
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371e3; // Earth's radius in meters
+    const R = 6371e3;
     const φ1 = lat1 * Math.PI / 180;
     const φ2 = lat2 * Math.PI / 180;
     const Δφ = (lat2 - lat1) * Math.PI / 180;
@@ -69,19 +105,19 @@ const MotionBehaviorAnalysis = ({ data, loading }) => {
               Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-    return R * c; // Distance in meters
+    return R * c;
   };
 
   const processedData = useMemo(() => {
     if (!data || data.length === 0) return [];
 
-    const result = data.map((row, index) => {
+    // First pass: calculate basic metrics
+    const basicData = data.map((row, index) => {
       const timestamp = parseDate(row['Transmitted Time']);
       const lat = parseFloat(row.Latitude) || 0;
       const lon = parseFloat(row.Longitude) || 0;
       const direction = parseFloat(row.Direction) || 0;
       
-      // Calculate speed and distance
       let speed = 0;
       let distance = 0;
       let directionDelta = 0;
@@ -93,21 +129,18 @@ const MotionBehaviorAnalysis = ({ data, loading }) => {
         const prevDirection = parseFloat(data[index - 1].Direction) || 0;
         
         distance = calculateDistance(lat, lon, prevLat, prevLon);
-        const timeDiff = (timestamp - prevTime) / 1000; // seconds
-        speed = timeDiff > 0 ? distance / timeDiff : 0; // m/s
+        const timeDiff = (timestamp - prevTime) / 1000;
+        speed = timeDiff > 0 ? (distance / 1000) / (timeDiff / 3600) : 0; // Convert to km/h
         
-        // Calculate direction change
         directionDelta = Math.abs(direction - prevDirection);
         if (directionDelta > 180) {
           directionDelta = 360 - directionDelta;
         }
       }
 
-      // Determine movement state
-      const isMoving = speed > 0.5; // > 0.5 m/s
-      const isStopped = speed <= 0.5;
-      const isSharpTurn = directionDelta > 45; // > 45 degrees
-      const isSuddenJump = distance > 50; // > 50 meters
+      const isMoving = speed > speedThreshold;
+      const isSharpTurn = directionDelta > 45;
+      const isHighSpeed = speed > 50;
 
       return {
         index,
@@ -116,216 +149,253 @@ const MotionBehaviorAnalysis = ({ data, loading }) => {
         timeShort: `${timestamp.getHours().toString().padStart(2, '0')}:${timestamp.getMinutes().toString().padStart(2, '0')}`,
         lat,
         lon,
+        speed,
+        distance: distance / 1000, // Convert to km
         direction,
-        speed: speed * 3.6, // Convert to km/h
-        distance,
         directionDelta,
+        acceleration: 0, // Will be calculated in second pass
         isMoving,
-        isStopped,
         isSharpTurn,
-        isSuddenJump,
-        state: isMoving ? 'Moving' : 'Idle',
+        isHighSpeed,
+        altitude: parseFloat(row.Altitude) || 0,
+        satellites: parseInt(row.Satellites) || 0,
       };
     });
 
-    // Debug: Check if we have valid data
-    if (result.length > 0) {
-      console.log('First processed point:', result[0]);
-      console.log('Direction delta range:', Math.min(...result.map(p => p.directionDelta)), 'to', Math.max(...result.map(p => p.directionDelta)));
-      console.log('Speed range:', Math.min(...result.map(p => p.speed)), 'to', Math.max(...result.map(p => p.speed)));
-    }
+    // Second pass: calculate acceleration
+    const finalData = basicData.map((point, index) => {
+      if (index > 1) {
+        const prevPoint = basicData[index - 1];
+        const timeDiff = (point.timestamp - prevPoint.timestamp) / 1000;
+        point.acceleration = timeDiff > 0 ? (point.speed - prevPoint.speed) / timeDiff : 0;
+      }
+      return point;
+    });
 
-    return result;
-  }, [data]);
+    return finalData;
+  }, [data, speedThreshold]);
 
+  // Calculate motion analysis statistics
   const motionAnalysis = useMemo(() => {
-    if (processedData.length === 0) return {};
+    if (!processedData.length) return {};
 
     const movingPoints = processedData.filter(point => point.isMoving);
-    const stoppedPoints = processedData.filter(point => point.isStopped);
     const sharpTurns = processedData.filter(point => point.isSharpTurn);
-    const suddenJumps = processedData.filter(point => point.isSuddenJump);
-
-    // Find stop periods
-    const stopPeriods = [];
-    let currentStopStart = null;
+    const highSpeedPoints = processedData.filter(point => point.isHighSpeed);
     
-    processedData.forEach((point, index) => {
-      if (point.isStopped && currentStopStart === null) {
-        currentStopStart = index;
-      } else if (!point.isStopped && currentStopStart !== null) {
-        stopPeriods.push({
-          start: currentStopStart,
-          end: index - 1,
-          duration: (index - currentStopStart) * 3, // seconds
-          location: `${processedData[currentStopStart].lat.toFixed(6)}, ${processedData[currentStopStart].lon.toFixed(6)}`
-        });
-        currentStopStart = null;
+    // Find stop periods (consecutive stationary points)
+    let stopPeriods = 0;
+    let currentStopLength = 0;
+    processedData.forEach(point => {
+      if (!point.isMoving) {
+        currentStopLength++;
+      } else {
+        if (currentStopLength > 3) { // Consider it a stop period if more than 3 consecutive stationary points
+          stopPeriods++;
+        }
+        currentStopLength = 0;
       }
     });
 
-    // Handle case where trip ends with a stop
-    if (currentStopStart !== null) {
-      stopPeriods.push({
-        start: currentStopStart,
-        end: processedData.length - 1,
-        duration: (processedData.length - currentStopStart) * 3,
-        location: `${processedData[currentStopStart].lat.toFixed(6)}, ${processedData[currentStopStart].lon.toFixed(6)}`
-      });
-    }
+    const speeds = processedData.map(p => p.speed).filter(s => s > 0);
+    const directionDeltas = processedData.map(p => p.directionDelta).filter(d => d > 0);
+    const accelerations = processedData.map(p => p.acceleration).filter(a => !isNaN(a));
 
     return {
       totalPoints: processedData.length,
       movingPoints: movingPoints.length,
-      stoppedPoints: stoppedPoints.length,
       sharpTurns: sharpTurns.length,
-      suddenJumps: suddenJumps.length,
-      stopPeriodsCount: stopPeriods.length,
-      avgSpeed: movingPoints.length > 0 ? 
-        movingPoints.reduce((sum, p) => sum + p.speed, 0) / movingPoints.length : 0,
-      maxSpeed: Math.max(...processedData.map(p => p.speed)),
-      avgDirectionDelta: processedData.reduce((sum, p) => sum + p.directionDelta, 0) / processedData.length,
-      maxDirectionDelta: Math.max(...processedData.map(p => p.directionDelta)),
-      stopPeriods,
+      stopPeriodsCount: stopPeriods,
+      highSpeedPoints: highSpeedPoints.length,
+      avgSpeed: speeds.length ? speeds.reduce((a, b) => a + b, 0) / speeds.length : 0,
+      maxSpeed: speeds.length ? Math.max(...speeds) : 0,
+      avgDirectionDelta: directionDeltas.length ? directionDeltas.reduce((a, b) => a + b, 0) / directionDeltas.length : 0,
+      maxDirectionDelta: directionDeltas.length ? Math.max(...directionDeltas) : 0,
+      avgAcceleration: accelerations.length ? accelerations.reduce((a, b) => a + b, 0) / accelerations.length : 0,
+      maxAcceleration: accelerations.length ? Math.max(...accelerations) : 0,
+      totalDistance: processedData.reduce((sum, p) => sum + p.distance, 0),
+      movingPercentage: (movingPoints.length / processedData.length) * 100,
     };
   }, [processedData]);
 
-  const handleChartClick = (chartType) => {
-    setSelectedChart(chartType);
-    setModalOpen(true);
-  };
+  // Get time ranges for filtering
+  const timeRanges = useMemo(() => {
+    if (!processedData.length) return [];
+    
+    const uniqueHours = [...new Set(processedData.map(p => p.timestamp.getHours()))];
+    return uniqueHours.map(hour => ({
+      value: hour.toString(),
+      label: `${hour.toString().padStart(2, '0')}:00`
+    }));
+  }, [processedData]);
 
-  const handleCloseModal = () => {
-    setModalOpen(false);
-    setSelectedChart(null);
-  };
+  const renderMetricCard = (title, value, icon, color, subtitle = '', progress = null) => (
+    <Card sx={{ 
+      background: 'linear-gradient(135deg, rgba(26, 35, 50, 0.95) 0%, rgba(40, 50, 60, 0.95) 100%)',
+      border: '2px solid rgba(255,255,255,0.1)',
+      borderRadius: 3,
+      height: '100%',
+      transition: 'all 0.3s ease',
+      '&:hover': {
+        borderColor: color,
+        transform: 'translateY(-2px)',
+        boxShadow: `0 8px 25px ${color}20`,
+      }
+    }}>
+      <CardContent sx={{ p: 2, textAlign: 'center' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
+          {icon}
+        </Box>
+        <Typography variant="h4" sx={{ color: color, fontWeight: 'bold', mb: 0.5 }}>
+          {typeof value === 'number' ? value.toLocaleString() : value}
+        </Typography>
+        <Typography variant="body2" sx={{ color: '#b0b0b0', mb: 1 }}>
+          {title}
+        </Typography>
+        {subtitle && (
+          <Typography variant="caption" sx={{ color: color, fontWeight: 'bold' }}>
+            {subtitle}
+          </Typography>
+        )}
+        {progress && (
+          <LinearProgress
+            variant="determinate"
+            value={progress}
+            sx={{
+              mt: 1,
+              height: 6,
+              borderRadius: 3,
+              bgcolor: 'rgba(255,255,255,0.1)',
+              '& .MuiLinearProgress-bar': {
+                bgcolor: color,
+              },
+            }}
+          />
+        )}
+      </CardContent>
+    </Card>
+  );
 
-  const renderChart = (chartType, data, height = 300) => {
-    const chartProps = {
-      data,
-      style: { cursor: 'pointer' },
-      onClick: () => handleChartClick(chartType),
-    };
-
-    switch (chartType) {
-      case 'directionDelta':
-        return (
-          <LineChart {...chartProps}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-            <XAxis 
-              dataKey="timeShort" 
-              stroke="#b0b0b0"
-              angle={-45}
-              textAnchor="end"
-              height={80}
-              interval="preserveStartEnd"
-            />
-            <YAxis stroke="#b0b0b0" />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#1a1a1a', 
-                border: '1px solid #333',
-                color: '#ffffff'
-              }}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="directionDelta" 
-              stroke="#ff9800" 
-              strokeWidth={2}
-              dot={false}
-            />
-          </LineChart>
-        );
-
-      case 'movementState':
-        return (
-          <BarChart {...chartProps}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-            <XAxis 
-              dataKey="timeShort" 
-              stroke="#b0b0b0"
-              angle={-45}
-              textAnchor="end"
-              height={80}
-              interval="preserveStartEnd"
-            />
-            <YAxis stroke="#b0b0b0" />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#1a1a1a', 
-                border: '1px solid #333',
-                color: '#ffffff'
-              }}
-            />
-            <Bar 
-              dataKey="speed" 
-              fill={(entry) => entry.isMoving ? '#00bcd4' : '#ff9800'}
-            />
-          </BarChart>
-        );
-
-      case 'distance':
-        return (
-          <LineChart {...chartProps}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-            <XAxis 
-              dataKey="timeShort" 
-              stroke="#b0b0b0"
-              angle={-45}
-              textAnchor="end"
-              height={80}
-              interval="preserveStartEnd"
-            />
-            <YAxis stroke="#b0b0b0" />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#1a1a1a', 
-                border: '1px solid #333',
-                color: '#ffffff'
-              }}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="distance" 
-              stroke="#4caf50" 
-              strokeWidth={2}
-              dot={false}
-            />
-          </LineChart>
-        );
-
-      case 'sharpTurn':
-        return (
-          <ScatterChart {...chartProps}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-            <XAxis 
-              dataKey="timeShort" 
-              stroke="#b0b0b0"
-              angle={-45}
-              textAnchor="end"
-              height={80}
-              interval="preserveStartEnd"
-            />
-            <YAxis stroke="#b0b0b0" />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#1a1a1a', 
-                border: '1px solid #333',
-                color: '#ffffff'
-              }}
-            />
-            <Scatter 
-              dataKey="directionDelta" 
-              fill={(entry) => entry.isSharpTurn ? '#f44336' : '#00bcd4'}
-            />
-          </ScatterChart>
-        );
-
-      default:
-        return null;
-    }
-  };
+  const renderChart = (data, type, title, color, height = 250) => (
+    <Card sx={{ 
+      background: 'linear-gradient(135deg, rgba(26, 35, 50, 0.95) 0%, rgba(40, 50, 60, 0.95) 100%)',
+      border: '2px solid rgba(255,255,255,0.1)',
+      borderRadius: 3,
+      height: '100%',
+      transition: 'all 0.3s ease',
+      '&:hover': {
+        borderColor: color,
+        transform: 'translateY(-2px)',
+        boxShadow: `0 8px 25px ${color}20`,
+      }
+    }}>
+      <CardContent sx={{ p: 2, height: '100%' }}>
+        <Typography variant="h6" sx={{ color: color, mb: 2, textAlign: 'center', fontWeight: 'bold' }}>
+          {title}
+        </Typography>
+        <ResponsiveContainer width="100%" height={height}>
+          {type === 'line' ? (
+            <LineChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+              <XAxis dataKey="timeShort" stroke="#b0b0b0" fontSize={10} />
+              <YAxis stroke="#b0b0b0" fontSize={10} />
+              <RechartsTooltip 
+                contentStyle={{ 
+                  backgroundColor: 'rgba(26, 35, 50, 0.95)', 
+                  border: '2px solid rgba(255,255,255,0.2)',
+                  borderRadius: 8,
+                  color: '#ffffff'
+                }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="speed" 
+                stroke={color} 
+                strokeWidth={3}
+                dot={{ fill: color, strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: color, strokeWidth: 2 }}
+              />
+            </LineChart>
+          ) : type === 'area' ? (
+            <AreaChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+              <XAxis dataKey="timeShort" stroke="#b0b0b0" fontSize={10} />
+              <YAxis stroke="#b0b0b0" fontSize={10} />
+              <RechartsTooltip 
+                contentStyle={{ 
+                  backgroundColor: 'rgba(26, 35, 50, 0.95)', 
+                  border: '2px solid rgba(255,255,255,0.2)',
+                  borderRadius: 8,
+                  color: '#ffffff'
+                }}
+              />
+              <Area 
+                type="monotone" 
+                dataKey="directionDelta" 
+                stroke={color} 
+                fill={color}
+                fillOpacity={0.3}
+                strokeWidth={2}
+              />
+            </AreaChart>
+          ) : type === 'bar' ? (
+            <BarChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+              <XAxis dataKey="timeShort" stroke="#b0b0b0" fontSize={10} />
+              <YAxis stroke="#b0b0b0" fontSize={10} />
+              <RechartsTooltip 
+                contentStyle={{ 
+                  backgroundColor: 'rgba(26, 35, 50, 0.95)', 
+                  border: '2px solid rgba(255,255,255,0.2)',
+                  borderRadius: 8,
+                  color: '#ffffff'
+                }}
+              />
+              <Bar dataKey="directionDelta" fill={color} radius={[4, 4, 0, 0]} />
+            </BarChart>
+          ) : type === 'scatter' ? (
+            <ScatterChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+              <XAxis dataKey="timeShort" stroke="#b0b0b0" fontSize={10} />
+              <YAxis stroke="#b0b0b0" fontSize={10} />
+              <RechartsTooltip 
+                contentStyle={{ 
+                  backgroundColor: 'rgba(26, 35, 50, 0.95)', 
+                  border: '2px solid rgba(255,255,255,0.2)',
+                  borderRadius: 8,
+                  color: '#ffffff'
+                }}
+              />
+              <Scatter dataKey="distance" fill={color} />
+            </ScatterChart>
+          ) : (
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                outerRadius={80}
+                dataKey="value"
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+              >
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <RechartsTooltip 
+                contentStyle={{ 
+                  backgroundColor: 'rgba(26, 35, 50, 0.95)', 
+                  border: '2px solid rgba(255,255,255,0.2)',
+                  borderRadius: 8,
+                  color: '#ffffff'
+                }}
+              />
+            </PieChart>
+          )}
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
 
   if (loading) {
     return (
@@ -343,236 +413,454 @@ const MotionBehaviorAnalysis = ({ data, loading }) => {
     );
   }
 
+  // Prepare chart data
+  const chartData = processedData.slice(0, 50); // Show first 50 points for better visualization
+  const pieData = [
+    { name: 'Moving', value: motionAnalysis.movingPoints, color: '#4caf50' },
+    { name: 'Stationary', value: motionAnalysis.totalPoints - motionAnalysis.movingPoints, color: '#f44336' },
+  ];
+
   return (
-    <Box sx={{ p: 3 }}>
-      {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={3}>
-          <Card sx={{ background: 'rgba(26, 26, 26, 0.9)', border: '1px solid #333' }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ color: '#00bcd4', mb: 1 }}>
-                Total Points
-              </Typography>
-              <Typography variant="h4" sx={{ color: '#ffffff' }}>
-                {motionAnalysis.totalPoints || 0}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={3}>
-          <Card sx={{ background: 'rgba(26, 26, 26, 0.9)', border: '1px solid #333' }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ color: '#00bcd4', mb: 1 }}>
-                Moving Points
-              </Typography>
-              <Typography variant="h4" sx={{ color: '#4caf50' }}>
-                {motionAnalysis.movingPoints || 0}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={3}>
-          <Card sx={{ background: 'rgba(26, 26, 26, 0.9)', border: '1px solid #333' }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ color: '#00bcd4', mb: 1 }}>
-                Sharp Turns
-              </Typography>
-              <Typography variant="h4" sx={{ color: '#ff9800' }}>
-                {motionAnalysis.sharpTurns || 0}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={3}>
-          <Card sx={{ background: 'rgba(26, 26, 26, 0.9)', border: '1px solid #333' }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ color: '#00bcd4', mb: 1 }}>
-                Stop Periods
-              </Typography>
-              <Typography variant="h4" sx={{ color: '#f44336' }}>
-                {motionAnalysis.stopPeriodsCount || 0}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Detailed Analysis */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12}>
-          <Card sx={{ background: 'rgba(26, 26, 26, 0.9)', border: '1px solid #333' }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ color: '#00bcd4', mb: 2 }}>
-                Motion Analysis Summary
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle1" sx={{ color: '#ffffff', mb: 1 }}>
-                      Speed Analysis
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: '#b0b0b0' }}>
-                      Average Speed: {motionAnalysis.avgSpeed?.toFixed(2) || 0} km/h
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: '#b0b0b0' }}>
-                      Maximum Speed: {motionAnalysis.maxSpeed?.toFixed(2) || 0} km/h
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle1" sx={{ color: '#ffffff', mb: 1 }}>
-                      Direction Analysis
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: '#b0b0b0' }}>
-                      Average Direction Change: {motionAnalysis.avgDirectionDelta?.toFixed(2) || 0}°
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: '#b0b0b0' }}>
-                      Maximum Direction Change: {motionAnalysis.maxDirectionDelta?.toFixed(2) || 0}°
-                    </Typography>
-                  </Box>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Charts */}
-      <Grid container spacing={3}>
-        {/* Direction Delta vs Time */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ background: 'rgba(26, 26, 26, 0.9)', border: '1px solid #333' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" sx={{ color: '#00bcd4' }}>
-                  Direction Changes vs Time
-                </Typography>
-                <IconButton size="small" sx={{ color: '#00bcd4' }}>
-                  <ZoomIn />
-                </IconButton>
-              </Box>
-              <ResponsiveContainer width="100%" height={300}>
-                {renderChart('directionDelta', processedData)}
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Movement State vs Time */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ background: 'rgba(26, 26, 26, 0.9)', border: '1px solid #333' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" sx={{ color: '#00bcd4' }}>
-                  Movement State vs Time
-                </Typography>
-                <IconButton size="small" sx={{ color: '#00bcd4' }}>
-                  <ZoomIn />
-                </IconButton>
-              </Box>
-              <ResponsiveContainer width="100%" height={300}>
-                {renderChart('movementState', processedData)}
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Distance vs Time */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ background: 'rgba(26, 26, 26, 0.9)', border: '1px solid #333' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" sx={{ color: '#00bcd4' }}>
-                  Distance Between Points vs Time
-                </Typography>
-                <IconButton size="small" sx={{ color: '#00bcd4' }}>
-                  <ZoomIn />
-                </IconButton>
-              </Box>
-              <ResponsiveContainer width="100%" height={300}>
-                {renderChart('distance', processedData)}
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Sharp Turn Detection */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ background: 'rgba(26, 26, 26, 0.9)', border: '1px solid #333' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" sx={{ color: '#00bcd4' }}>
-                  Sharp Turn Detection
-                </Typography>
-                <IconButton size="small" sx={{ color: '#00bcd4' }}>
-                  <ZoomIn />
-                </IconButton>
-              </Box>
-              <ResponsiveContainer width="100%" height={300}>
-                {renderChart('sharpTurn', processedData)}
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Modal for enlarged chart view */}
-      <Modal
-        open={modalOpen}
-        onClose={handleCloseModal}
-        aria-labelledby="chart-modal-title"
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          p: 2,
-        }}
-      >
-        <Paper
-          sx={{
-            position: 'relative',
-            width: '90vw',
-            height: '80vh',
-            maxWidth: 1200,
-            maxHeight: 800,
-            bgcolor: 'rgba(26, 26, 26, 0.95)',
-            border: '2px solid #333',
-            borderRadius: 2,
-            p: 3,
-            outline: 'none',
-          }}
-        >
-          <IconButton
-            onClick={handleCloseModal}
-            sx={{
-              position: 'absolute',
-              right: 8,
-              top: 8,
-              color: '#00bcd4',
-              zIndex: 1,
-            }}
-          >
-            <Close />
-          </IconButton>
-          
-          <Typography variant="h5" sx={{ color: '#00bcd4', mb: 3, textAlign: 'center' }}>
-            {selectedChart === 'directionDelta' && 'Direction Changes vs Time'}
-            {selectedChart === 'movementState' && 'Movement State vs Time'}
-            {selectedChart === 'distance' && 'Distance Between Points vs Time'}
-            {selectedChart === 'sharpTurn' && 'Sharp Turn Detection'}
-          </Typography>
-          
-          <Box sx={{ height: 'calc(100% - 100px)' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              {renderChart(selectedChart, processedData, '100%')}
-            </ResponsiveContainer>
+    <Box sx={{ 
+      minHeight: '100vh', 
+      background: 'linear-gradient(135deg, #0a0e1a 0%, #1a1f2e 100%)',
+      p: { xs: 1, sm: 2 }
+    }}>
+      {/* Compact Header */}
+      <Box sx={{ mb: 2 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: { xs: 'column', sm: 'row' },
+          justifyContent: 'space-between', 
+          alignItems: { xs: 'flex-start', sm: 'center' }, 
+          gap: 1,
+          mb: 1 
+        }}>
+          <Box>
+            <Typography 
+              variant="h5" 
+              sx={{ 
+                color: '#00d4ff', 
+                fontWeight: 'bold', 
+                display: 'flex', 
+                alignItems: 'center',
+                fontSize: { xs: '1.25rem', sm: '1.5rem' }
+              }}
+            >
+              <Speed sx={{ mr: 1, fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
+              Motion Behavior Analysis
+            </Typography>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: '#b0b0b0', 
+                mt: 0.5,
+                fontSize: '0.875rem'
+              }}
+            >
+              Movement patterns and speed analysis
+            </Typography>
           </Box>
-        </Paper>
-      </Modal>
+          
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 1, 
+            flexWrap: 'wrap',
+            width: { xs: '100%', sm: 'auto' }
+          }}>
+            <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 120 } }}>
+              <InputLabel>Time Range</InputLabel>
+              <Select
+                value={selectedTimeRange}
+                onChange={(e) => setSelectedTimeRange(e.target.value)}
+                label="Time Range"
+              >
+                <MenuItem value="all">All Time</MenuItem>
+                {timeRanges.map((range) => (
+                  <MenuItem key={range.value} value={range.value}>
+                    {range.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<Settings />}
+              onClick={() => setShowAdvancedMetrics(!showAdvancedMetrics)}
+              sx={{ 
+                borderColor: '#00d4ff', 
+                color: '#00d4ff',
+                '&:hover': { borderColor: '#00e5ff', backgroundColor: 'rgba(0, 212, 255, 0.1)' },
+                width: { xs: '100%', sm: 'auto' }
+              }}
+            >
+              Advanced
+            </Button>
+          </Box>
+        </Box>
+
+        {/* Compact Advanced Controls */}
+        {showAdvancedMetrics && (
+          <Paper sx={{ 
+            p: 1.5, 
+            mb: 1, 
+            bgcolor: 'rgba(26, 35, 50, 0.8)',
+            borderRadius: 1
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              gap: 2, 
+              alignItems: 'center', 
+              flexWrap: 'wrap' 
+            }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={showHeatmap}
+                    onChange={(e) => setShowHeatmap(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label="Show Heatmap"
+              />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" sx={{ color: '#b0b0b0', fontSize: '0.875rem' }}>
+                  Speed Threshold: {speedThreshold} km/h
+                </Typography>
+                <Slider
+                  value={speedThreshold}
+                  onChange={(e, value) => setSpeedThreshold(value)}
+                  min={1}
+                  max={20}
+                  step={1}
+                  sx={{ width: 120, color: '#00d4ff' }}
+                />
+              </Box>
+            </Box>
+          </Paper>
+        )}
+      </Box>
+
+      {/* Compact Main Content */}
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: { xs: 'column', lg: 'row' },
+        gap: 2
+      }}>
+        {/* Left Column - Main Content */}
+        <Box sx={{ 
+          flexGrow: 1, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: 2
+        }}>
+          {/* Compact Key Metrics */}
+          <Grid container spacing={1.5}>
+            <Grid item xs={6} sm={3}>
+              {renderMetricCard(
+                'Total Points',
+                motionAnalysis.totalPoints || 0,
+                <Analytics sx={{ color: '#00d4ff', fontSize: 24 }} />,
+                '#00d4ff'
+              )}
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              {renderMetricCard(
+                'Moving Points',
+                motionAnalysis.movingPoints || 0,
+                <DirectionsWalk sx={{ color: '#4caf50', fontSize: 24 }} />,
+                '#4caf50',
+                `${motionAnalysis.movingPercentage?.toFixed(1)}%`,
+                motionAnalysis.movingPercentage
+              )}
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              {renderMetricCard(
+                'Sharp Turns',
+                motionAnalysis.sharpTurns || 0,
+                <Warning sx={{ color: '#ff9800', fontSize: 24 }} />,
+                '#ff9800'
+              )}
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              {renderMetricCard(
+                'Stop Periods',
+                motionAnalysis.stopPeriodsCount || 0,
+                <Timer sx={{ color: '#f44336', fontSize: 24 }} />,
+                '#f44336'
+              )}
+            </Grid>
+          </Grid>
+
+          {/* Combined Analysis Section */}
+          <Grid container spacing={1.5}>
+            <Grid item xs={12} md={6}>
+              <Card sx={{ 
+                background: 'linear-gradient(135deg, rgba(26, 35, 50, 0.95) 0%, rgba(40, 50, 60, 0.95) 100%)',
+                border: '2px solid rgba(255,255,255,0.1)',
+                borderRadius: 2,
+                height: '100%',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  borderColor: '#00d4ff',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 8px 25px rgba(0, 212, 255, 0.2)',
+                }
+              }}>
+                <CardContent sx={{ p: 1.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                    <Speed sx={{ color: '#00d4ff', mr: 1 }} />
+                    <Typography variant="h6" sx={{ color: '#00d4ff', fontWeight: 'bold' }}>
+                      Speed & Direction Analysis
+                    </Typography>
+                  </Box>
+                  <Grid container spacing={1.5}>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" sx={{ color: '#b0b0b0', fontSize: '0.875rem' }}>Avg Speed</Typography>
+                      <Typography variant="h6" sx={{ color: '#4caf50', fontWeight: 'bold', fontSize: '1rem' }}>
+                        {motionAnalysis.avgSpeed?.toFixed(1) || 0} km/h
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" sx={{ color: '#b0b0b0', fontSize: '0.875rem' }}>Max Speed</Typography>
+                      <Typography variant="h6" sx={{ color: '#ff9800', fontWeight: 'bold', fontSize: '1rem' }}>
+                        {motionAnalysis.maxSpeed?.toFixed(1) || 0} km/h
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" sx={{ color: '#b0b0b0', fontSize: '0.875rem' }}>Total Distance</Typography>
+                      <Typography variant="h6" sx={{ color: '#00d4ff', fontWeight: 'bold', fontSize: '1rem' }}>
+                        {motionAnalysis.totalDistance?.toFixed(2) || 0} km
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" sx={{ color: '#b0b0b0', fontSize: '0.875rem' }}>Avg Direction</Typography>
+                      <Typography variant="h6" sx={{ color: '#f44336', fontWeight: 'bold', fontSize: '1rem' }}>
+                        {motionAnalysis.avgDirectionDelta?.toFixed(1) || 0}°
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Card sx={{ 
+                background: 'linear-gradient(135deg, rgba(26, 35, 50, 0.95) 0%, rgba(40, 50, 60, 0.95) 100%)',
+                border: '2px solid rgba(255,255,255,0.1)',
+                borderRadius: 2,
+                height: '100%',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  borderColor: '#ff9800',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 8px 25px rgba(255, 152, 0, 0.2)',
+                }
+              }}>
+                <CardContent sx={{ p: 1.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                    <TrendingUp sx={{ color: '#ff9800', mr: 1 }} />
+                    <Typography variant="h6" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
+                      Movement Distribution
+                    </Typography>
+                  </Box>
+                  <ResponsiveContainer width="100%" height={120}>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={50}
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'rgba(26, 35, 50, 0.95)', 
+                          border: '2px solid rgba(255,255,255,0.2)',
+                          borderRadius: 8,
+                          color: '#ffffff'
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+
+          {/* Single Chart Section */}
+          <Card sx={{ 
+            background: 'linear-gradient(135deg, rgba(26, 35, 50, 0.95) 0%, rgba(40, 50, 60, 0.95) 100%)',
+            border: '2px solid rgba(255,255,255,0.1)',
+            borderRadius: 2,
+            height: 250,
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              borderColor: '#00d4ff',
+              transform: 'translateY(-2px)',
+              boxShadow: '0 8px 25px rgba(0, 212, 255, 0.2)',
+            }
+          }}>
+            <CardContent sx={{ p: 1.5, height: '100%' }}>
+              <Typography variant="h6" sx={{ color: '#00d4ff', mb: 1.5, textAlign: 'center', fontWeight: 'bold' }}>
+                Speed Over Time
+              </Typography>
+              <ResponsiveContainer width="100%" height={180}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                  <XAxis dataKey="timeShort" stroke="#b0b0b0" fontSize={10} />
+                  <YAxis stroke="#b0b0b0" fontSize={10} />
+                  <RechartsTooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(26, 35, 50, 0.95)', 
+                      border: '2px solid rgba(255,255,255,0.2)',
+                      borderRadius: 8,
+                      color: '#ffffff'
+                    }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="speed" 
+                    stroke="#00d4ff" 
+                    strokeWidth={3}
+                    dot={{ fill: '#00d4ff', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, stroke: '#00d4ff', strokeWidth: 2 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </Box>
+
+        {/* Compact Right Column */}
+        <Box sx={{ 
+          width: { xs: '100%', lg: 280 },
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: 1.5
+        }}>
+          {/* Combined Analytics Card */}
+          <Card sx={{ 
+            bgcolor: 'rgba(26, 35, 50, 0.9)', 
+            flexGrow: 1,
+            border: '2px solid rgba(255,255,255,0.1)',
+            borderRadius: 2,
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              borderColor: '#4caf50',
+              transform: 'translateY(-2px)',
+              boxShadow: '0 8px 25px rgba(76, 175, 80, 0.2)',
+            }
+          }}>
+            <CardContent sx={{ p: 1.5 }}>
+              <Typography variant="h6" sx={{ color: '#00d4ff', mb: 1.5, display: 'flex', alignItems: 'center' }}>
+                <Analytics sx={{ mr: 1 }} />
+                Analytics Summary
+              </Typography>
+              
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ color: '#b0b0b0', fontSize: '0.875rem' }}>
+                    Moving vs Stationary
+                  </Typography>
+                  <Chip
+                    label={`${motionAnalysis.movingPercentage?.toFixed(1)}% Moving`}
+                    size="small"
+                    sx={{ bgcolor: 'rgba(76, 175, 80, 0.2)', color: '#4caf50' }}
+                  />
+                </Box>
+                
+                <LinearProgress
+                  variant="determinate"
+                  value={motionAnalysis.movingPercentage || 0}
+                  sx={{
+                    height: 6,
+                    borderRadius: 3,
+                    bgcolor: 'rgba(255,255,255,0.1)',
+                    '& .MuiLinearProgress-bar': {
+                      bgcolor: '#4caf50',
+                    },
+                  }}
+                />
+
+                <Divider sx={{ my: 1 }} />
+
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ color: '#b0b0b0', fontSize: '0.875rem' }}>
+                    Sharp Turns
+                  </Typography>
+                  <Chip
+                    label={`${motionAnalysis.sharpTurns || 0} turns`}
+                    size="small"
+                    sx={{ bgcolor: 'rgba(255, 152, 0, 0.2)', color: '#ff9800' }}
+                  />
+                </Box>
+
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ color: '#b0b0b0', fontSize: '0.875rem' }}>
+                    High Speed Points
+                  </Typography>
+                  <Chip
+                    label={`${motionAnalysis.highSpeedPoints || 0} points`}
+                    size="small"
+                    sx={{ bgcolor: 'rgba(244, 67, 54, 0.2)', color: '#f44336' }}
+                  />
+                </Box>
+
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ color: '#b0b0b0', fontSize: '0.875rem' }}>
+                    Stop Periods
+                  </Typography>
+                  <Chip
+                    label={`${motionAnalysis.stopPeriodsCount || 0} stops`}
+                    size="small"
+                    sx={{ bgcolor: 'rgba(158, 158, 158, 0.2)', color: '#9e9e9e' }}
+                  />
+                </Box>
+
+                <Divider sx={{ my: 1 }} />
+
+                <Typography variant="body2" sx={{ color: '#b0b0b0', fontSize: '0.875rem', mb: 1 }}>
+                  Speed Distribution:
+                </Typography>
+                
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="caption" sx={{ color: '#b0b0b0' }}>0-10 km/h</Typography>
+                    <Typography variant="caption" sx={{ color: '#4caf50' }}>
+                      {processedData.filter(p => p.speed >= 0 && p.speed <= 10).length}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="caption" sx={{ color: '#b0b0b0' }}>10-30 km/h</Typography>
+                    <Typography variant="caption" sx={{ color: '#ff9800' }}>
+                      {processedData.filter(p => p.speed > 10 && p.speed <= 30).length}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="caption" sx={{ color: '#b0b0b0' }}>30-50 km/h</Typography>
+                    <Typography variant="caption" sx={{ color: '#f44336' }}>
+                      {processedData.filter(p => p.speed > 30 && p.speed <= 50).length}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="caption" sx={{ color: '#b0b0b0' }}>50+ km/h</Typography>
+                    <Typography variant="caption" sx={{ color: '#9c27b0' }}>
+                      {processedData.filter(p => p.speed > 50).length}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Box>
+      </Box>
     </Box>
   );
 };
