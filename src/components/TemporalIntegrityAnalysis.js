@@ -35,8 +35,6 @@ import {
   Area,
   BarChart,
   Bar,
-  ScatterChart,
-  Scatter,
   PieChart,
   Pie,
   Cell,
