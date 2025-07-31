@@ -13,7 +13,6 @@ import {
   Button,
   FormControlLabel,
   Switch,
-  Slider,
   Chip,
   LinearProgress,
   Divider,
