@@ -113,11 +113,11 @@ const MotionBehaviorAnalysis = ({ data, loading }) => {
           directionDelta = 360 - directionDelta;
         }
       }
-    
+
       const isMoving = speed > speedThreshold;
       const isSharpTurn = directionDelta > 45;
       const isHighSpeed = speed > 50;
-    
+
       return {
         index,
         timestamp,
@@ -267,7 +267,7 @@ const MotionBehaviorAnalysis = ({ data, loading }) => {
             sx={{
               mt: 1,
               height: 4,
-              borderRadius: 2,
+      borderRadius: 2,
               bgcolor: 'rgba(255,255,255,0.1)',
               '& .MuiLinearProgress-bar': {
                 bgcolor: color,
@@ -330,8 +330,8 @@ const MotionBehaviorAnalysis = ({ data, loading }) => {
               }}
             >
               <Speed sx={{ mr: 1, fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
-              Motion Behavior Analysis
-            </Typography>
+          Motion Behavior Analysis
+        </Typography>
             <Typography 
               variant="body2" 
               sx={{ 
@@ -341,9 +341,9 @@ const MotionBehaviorAnalysis = ({ data, loading }) => {
               }}
             >
               Movement patterns and speed analysis
-            </Typography>
-          </Box>
-          
+        </Typography>
+      </Box>
+
           <Box sx={{ 
             display: 'flex', 
             gap: 1, 
@@ -441,45 +441,45 @@ const MotionBehaviorAnalysis = ({ data, loading }) => {
           {/* Compact Key Metrics */}
           <Grid container spacing={1.5}>
             <Grid item xs={6} sm={3}>
-              {renderMetricCard(
-                'Total Points',
-                motionAnalysis.totalPoints || 0,
+          {renderMetricCard(
+            'Total Points',
+            motionAnalysis.totalPoints || 0,
                 <Analytics sx={{ color: '#00d4ff', fontSize: 24 }} />,
                 '#00d4ff'
-              )}
-            </Grid>
+          )}
+        </Grid>
             <Grid item xs={6} sm={3}>
-              {renderMetricCard(
-                'Moving Points',
-                motionAnalysis.movingPoints || 0,
-                <DirectionsWalk sx={{ color: '#4caf50', fontSize: 24 }} />,
-                '#4caf50',
+          {renderMetricCard(
+            'Moving Points',
+            motionAnalysis.movingPoints || 0,
+            <DirectionsWalk sx={{ color: '#4caf50', fontSize: 24 }} />,
+            '#4caf50',
                 `${motionAnalysis.movingPercentage?.toFixed(1)}%`,
                 motionAnalysis.movingPercentage
-              )}
-            </Grid>
+          )}
+        </Grid>
             <Grid item xs={6} sm={3}>
-              {renderMetricCard(
-                'Sharp Turns',
-                motionAnalysis.sharpTurns || 0,
-                <Warning sx={{ color: '#ff9800', fontSize: 24 }} />,
-                '#ff9800'
-              )}
-            </Grid>
+          {renderMetricCard(
+            'Sharp Turns',
+            motionAnalysis.sharpTurns || 0,
+            <Warning sx={{ color: '#ff9800', fontSize: 24 }} />,
+            '#ff9800'
+          )}
+        </Grid>
             <Grid item xs={6} sm={3}>
-              {renderMetricCard(
-                'Stop Periods',
-                motionAnalysis.stopPeriodsCount || 0,
+          {renderMetricCard(
+            'Stop Periods',
+            motionAnalysis.stopPeriodsCount || 0,
                 <Timer sx={{ color: '#f44336', fontSize: 24 }} />,
-                '#f44336'
-              )}
-            </Grid>
-          </Grid>
+            '#f44336'
+          )}
+        </Grid>
+      </Grid>
 
           {/* Combined Analysis Section */}
           <Grid container spacing={1.5}>
-            <Grid item xs={12} md={6}>
-              <Card sx={{ 
+        <Grid item xs={12} md={6}>
+          <Card sx={{ 
                 background: 'linear-gradient(135deg, rgba(26, 35, 50, 0.95) 0%, rgba(40, 50, 60, 0.95) 100%)',
                 border: '2px solid rgba(255,255,255,0.1)',
                 borderRadius: 2,
@@ -496,8 +496,8 @@ const MotionBehaviorAnalysis = ({ data, loading }) => {
                     <Speed sx={{ color: '#00d4ff', mr: 1 }} />
                     <Typography variant="h6" sx={{ color: '#00d4ff', fontWeight: 'bold' }}>
                       Speed & Direction Analysis
-                    </Typography>
-                  </Box>
+                </Typography>
+              </Box>
                   <Grid container spacing={1.5}>
                     <Grid item xs={6}>
                       <Typography variant="body2" sx={{ color: '#b0b0b0', fontSize: '0.875rem' }}>Avg Speed</Typography>
@@ -511,24 +511,24 @@ const MotionBehaviorAnalysis = ({ data, loading }) => {
                         {motionAnalysis.maxSpeed?.toFixed(1) || 0} km/h
                       </Typography>
                     </Grid>
-                    <Grid item xs={6}>
+                <Grid item xs={6}>
                       <Typography variant="body2" sx={{ color: '#b0b0b0', fontSize: '0.875rem' }}>Total Distance</Typography>
                       <Typography variant="h6" sx={{ color: '#00d4ff', fontWeight: 'bold', fontSize: '1rem' }}>
                         {motionAnalysis.totalDistance?.toFixed(2) || 0} km
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6}>
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
                       <Typography variant="body2" sx={{ color: '#b0b0b0', fontSize: '0.875rem' }}>Avg Direction</Typography>
                       <Typography variant="h6" sx={{ color: '#f44336', fontWeight: 'bold', fontSize: '1rem' }}>
                         {motionAnalysis.avgDirectionDelta?.toFixed(1) || 0}°
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Card sx={{ 
+                  </Typography>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ 
                 background: 'linear-gradient(135deg, rgba(26, 35, 50, 0.95) 0%, rgba(40, 50, 60, 0.95) 100%)',
                 border: '2px solid rgba(255,255,255,0.1)',
                 borderRadius: 2,
@@ -676,13 +676,13 @@ const MotionBehaviorAnalysis = ({ data, loading }) => {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Typography variant="body2" sx={{ color: '#b0b0b0', fontSize: '0.875rem' }}>
                     Sharp Turns
-                  </Typography>
+                </Typography>
                   <Chip
                     label={`${motionAnalysis.sharpTurns || 0} turns`}
                     size="small"
                     sx={{ bgcolor: 'rgba(255, 152, 0, 0.2)', color: '#ff9800' }}
                   />
-                </Box>
+              </Box>
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Typography variant="body2" sx={{ color: '#b0b0b0', fontSize: '0.875rem' }}>
@@ -747,4 +747,4 @@ const MotionBehaviorAnalysis = ({ data, loading }) => {
   );
 };
 
-export default MotionBehaviorAnalysis;
+export default MotionBehaviorAnalysis; 

@@ -279,18 +279,15 @@ const Login = ({ onLogin }) => {
                 Keiros
               </Box>
               <Box component="span" sx={{ 
-                background: 'linear-gradient(45deg, #00d4ff, #ff6b35)', 
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                color: '#ff6b35',
                 textShadow: '0 0 20px rgba(255, 107, 53, 0.5)',
                 animation: 'gradientShift 6s ease-in-out infinite',
                 '@keyframes gradientShift': {
                   '0%, 100%': {
-                    background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+                    color: '#ff6b35',
                   },
                   '50%': {
-                    background: 'linear-gradient(45deg, #ff6b35, #00d4ff)',
+                    color: '#00d4ff',
                   },
                 },
               }}>
@@ -406,11 +403,16 @@ const Login = ({ onLogin }) => {
                 Keiros
               </Box>
               <Box component="span" sx={{ 
-                background: 'linear-gradient(45deg, #00d4ff, #ff6b35)', 
-                backgroundClip: 'text',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                color: '#ff6b35',
                 animation: 'gradientShift 6s ease-in-out infinite',
+                '@keyframes gradientShift': {
+                  '0%, 100%': {
+                    color: '#ff6b35',
+                  },
+                  '50%': {
+                    color: '#00d4ff',
+                  },
+                },
               }}>
                 {' '}GPS Analysis
               </Box>

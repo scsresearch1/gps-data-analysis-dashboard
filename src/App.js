@@ -217,10 +217,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           '&.MuiTypography-h1, &.MuiTypography-h2, &.MuiTypography-h3': {
-            background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
+            color: '#00d4ff',
           },
         },
       },
