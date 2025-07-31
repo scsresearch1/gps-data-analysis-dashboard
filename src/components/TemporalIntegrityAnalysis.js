@@ -1,78 +1,58 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  Grid,
-  Typography,
   Box,
+  Typography,
   Card,
   CardContent,
-  CircularProgress,
-  Alert,
-  LinearProgress,
-  Chip,
-  Divider,
-  Button,
+  Grid,
+  Paper,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Switch,
+  Button,
   FormControlLabel,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Tooltip,
+  Switch,
+  Slider,
+  Chip,
+  LinearProgress,
+  Divider,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
+import {
+  Speed,
+  Analytics,
+  DirectionsWalk,
+  Warning,
+  Timer,
+  TrendingUp,
+  Settings,
+} from '@mui/icons-material';
 import {
   LineChart,
   Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
+  AreaChart,
+  Area,
   BarChart,
   Bar,
+  ScatterChart,
+  Scatter,
   PieChart,
   Pie,
   Cell,
-  AreaChart,
-  Area,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
 } from 'recharts';
-import {
-  CheckCircle,
-  Error,
-  TrendingUp,
-  Analytics,
-  SignalCellularAlt,
-  Timer,
-  PlayArrow,
-  Pause,
-  FilterList,
-  Settings,
-  Visibility,
-  VisibilityOff,
-  CenterFocusStrong,
-  Route,
-  Straighten,
-  AccessTime,
-  Satellite,
-  Height,
-  Navigation,
-  Warning,
-  Info,
-} from '@mui/icons-material';
 
 const TemporalIntegrityAnalysis = ({ data, loading }) => {
   const [selectedTimeRange, setSelectedTimeRange] = useState('all');
   const [showAdvancedMetrics, setShowAdvancedMetrics] = useState(false);
   const [showGapAnalysis, setShowGapAnalysis] = useState(true);
   const [showDriftAnalysis, setShowDriftAnalysis] = useState(true);
-  const [selectedGap, setSelectedGap] = useState(null);
 
   // Helper function to parse date correctly
   const parseDate = (dateString) => {
@@ -478,7 +458,7 @@ const TemporalIntegrityAnalysis = ({ data, loading }) => {
               {renderMetricCard(
                 'Reliability',
                 `${temporalAnalysis.reliability || 0}%`,
-                <CheckCircle sx={{ color: '#4caf50', fontSize: 28 }} />,
+                <DirectionsWalk sx={{ color: '#4caf50', fontSize: 28 }} />,
                 '#4caf50',
                 'Transmission Success Rate',
                 temporalAnalysis.reliability
@@ -488,7 +468,7 @@ const TemporalIntegrityAnalysis = ({ data, loading }) => {
               {renderMetricCard(
                 'Packet Loss',
                 `${temporalAnalysis.packetLossRate || 0}%`,
-                <Error sx={{ color: '#f44336', fontSize: 28 }} />,
+                <Warning sx={{ color: '#f44336', fontSize: 28 }} />,
                 '#f44336',
                 'Missing Packets'
               )}
@@ -497,7 +477,7 @@ const TemporalIntegrityAnalysis = ({ data, loading }) => {
               {renderMetricCard(
                 'Jitter',
                 `${temporalAnalysis.jitter || 0}s`,
-                <SignalCellularAlt sx={{ color: '#ff9800', fontSize: 28 }} />,
+                <Speed sx={{ color: '#ff9800', fontSize: 28 }} />,
                 '#ff9800',
                 'Timing Variation'
               )}

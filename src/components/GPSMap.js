@@ -1,66 +1,40 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   Box,
   Typography,
   Card,
   CardContent,
   Grid,
+  Paper,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Chip,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Tooltip,
-  Alert,
-  CircularProgress,
   Button,
-  Switch,
   FormControlLabel,
+  Switch,
   Slider,
-  Divider,
+  Chip,
   LinearProgress,
-  Badge,
-  Tabs,
-  Tab,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
+  Divider,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import {
-  Map,
-  LocationOn,
-  Timeline,
-  Info,
-  ZoomIn,
-  ZoomOut,
-  MyLocation,
-  PlayArrow,
-  Pause,
   Speed,
-  FilterList,
-  Settings,
   Analytics,
-  Visibility,
-  VisibilityOff,
-  CenterFocusStrong,
-  Route,
-  Straighten,
-  AccessTime,
-  Satellite,
-  Height,
-  Navigation,
+  DirectionsWalk,
+  Warning,
+  Timer,
+  TrendingUp,
+  Settings,
+  Map,
+  Menu,
+  Logout,
 } from '@mui/icons-material';
-import { MapContainer, TileLayer, Popup, Marker, ZoomControl, Polyline, Circle } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
+import { MapContainer, TileLayer, Popup, Marker, ZoomControl, Polyline } from 'react-leaflet';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { format } from 'date-fns';
 
 // Fix for default markers in react-leaflet
@@ -90,19 +64,12 @@ const createCustomIcon = (color = '#00d4ff') => {
 
 const GPSMap = ({ data, loading }) => {
   const [selectedDate, setSelectedDate] = useState('all');
-  const [mapCenter, setMapCenter] = useState([17.726, 78.256]);
-  const [mapZoom, setMapZoom] = useState(13);
+  const [mapCenter] = useState([17.726, 78.256]);
+  const [mapZoom] = useState(13);
   const [mapRef, setMapRef] = useState(null);
   const [showMarkers, setShowMarkers] = useState(true);
   const [showTrajectory, setShowTrajectory] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(false);
-  const [animationSpeed, setAnimationSpeed] = useState(1000);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [currentPointIndex, setCurrentPointIndex] = useState(0);
-  const [selectedPoint, setSelectedPoint] = useState(null);
-  const [activeTab, setActiveTab] = useState(0);
-  const [filterRadius, setFilterRadius] = useState(50);
-  const [showAdvancedStats, setShowAdvancedStats] = useState(false);
 
   const animationRef = useRef(null);
 

@@ -1,74 +1,50 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  Grid,
-  Typography,
   Box,
+  Typography,
   Card,
   CardContent,
-  CircularProgress,
-  Alert,
-  Chip,
-  Divider,
-  LinearProgress,
-  Button,
+  Grid,
+  Paper,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Switch,
+  Button,
   FormControlLabel,
+  Switch,
   Slider,
-  Paper,
+  Chip,
+  LinearProgress,
+  Divider,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
+import {
+  Speed,
+  Analytics,
+  DirectionsWalk,
+  Warning,
+  Timer,
+  TrendingUp,
+  Settings,
+} from '@mui/icons-material';
 import {
   LineChart,
   Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  ScatterChart,
-  Scatter,
-  AreaChart,
-  Area,
   PieChart,
   Pie,
   Cell,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
 } from 'recharts';
-import {
-  Speed,
-  DirectionsWalk,
-  Warning,
-  TrendingUp,
-  Timeline,
-  Analytics,
-  PlayArrow,
-  Pause,
-  FilterList,
-  Settings,
-  Visibility,
-  VisibilityOff,
-  CenterFocusStrong,
-  Route,
-  Straighten,
-  AccessTime,
-  Satellite,
-  Height,
-  Navigation,
-  Timer,
-  SpeedDial,
-  SpeedDialAction,
-  SpeedDialIcon,
-} from '@mui/icons-material';
 
 const MotionBehaviorAnalysis = ({ data, loading }) => {
   const [selectedTimeRange, setSelectedTimeRange] = useState('all');
   const [showAdvancedMetrics, setShowAdvancedMetrics] = useState(false);
-  const [animationSpeed, setAnimationSpeed] = useState(1000);
-  const [isAnimating, setIsAnimating] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [speedThreshold, setSpeedThreshold] = useState(5);
 
@@ -137,11 +113,11 @@ const MotionBehaviorAnalysis = ({ data, loading }) => {
           directionDelta = 360 - directionDelta;
         }
       }
-
+    
       const isMoving = speed > speedThreshold;
       const isSharpTurn = directionDelta > 45;
       const isHighSpeed = speed > 50;
-
+    
       return {
         index,
         timestamp,
@@ -175,66 +151,93 @@ const MotionBehaviorAnalysis = ({ data, loading }) => {
     return finalData;
   }, [data, speedThreshold]);
 
-  // Calculate motion analysis statistics
   const motionAnalysis = useMemo(() => {
-    if (!processedData.length) return {};
+    if (!processedData || processedData.length === 0) {
+      return {
+        totalPoints: 0,
+        movingPoints: 0,
+        movingPercentage: 0,
+        sharpTurns: 0,
+        stopPeriodsCount: 0,
+        avgSpeed: 0,
+        maxSpeed: 0,
+        highSpeedPoints: 0,
+        totalDistance: 0,
+        avgDirectionDelta: 0,
+        maxDirectionDelta: 0,
+        avgAcceleration: 0,
+        maxAcceleration: 0,
+      };
+    }
 
-    const movingPoints = processedData.filter(point => point.isMoving);
-    const sharpTurns = processedData.filter(point => point.isSharpTurn);
-    const highSpeedPoints = processedData.filter(point => point.isHighSpeed);
-    
-    // Find stop periods (consecutive stationary points)
-    let stopPeriods = 0;
+    const movingPoints = processedData.filter(p => p.isMoving).length;
+    const sharpTurns = processedData.filter(p => p.isSharpTurn).length;
+    const highSpeedPoints = processedData.filter(p => p.isHighSpeed).length;
+    const totalDistance = processedData.reduce((sum, p) => sum + p.distance, 0);
+    const avgSpeed = processedData.reduce((sum, p) => sum + p.speed, 0) / processedData.length;
+    const maxSpeed = Math.max(...processedData.map(p => p.speed));
+    const avgDirectionDelta = processedData.reduce((sum, p) => sum + p.directionDelta, 0) / processedData.length;
+    const maxDirectionDelta = Math.max(...processedData.map(p => p.directionDelta));
+    const avgAcceleration = processedData.reduce((sum, p) => sum + p.acceleration, 0) / processedData.length;
+    const maxAcceleration = Math.max(...processedData.map(p => p.acceleration));
+
+    // Calculate stop periods (consecutive stationary points)
+    let stopPeriodsCount = 0;
     let currentStopLength = 0;
-    processedData.forEach(point => {
+    for (const point of processedData) {
       if (!point.isMoving) {
         currentStopLength++;
       } else {
-        if (currentStopLength > 3) { // Consider it a stop period if more than 3 consecutive stationary points
-          stopPeriods++;
+        if (currentStopLength > 0) {
+          stopPeriodsCount++;
+          currentStopLength = 0;
         }
-        currentStopLength = 0;
       }
-    });
-
-    const speeds = processedData.map(p => p.speed).filter(s => s > 0);
-    const directionDeltas = processedData.map(p => p.directionDelta).filter(d => d > 0);
-    const accelerations = processedData.map(p => p.acceleration).filter(a => !isNaN(a));
+    }
+    if (currentStopLength > 0) {
+      stopPeriodsCount++;
+    }
 
     return {
       totalPoints: processedData.length,
-      movingPoints: movingPoints.length,
-      sharpTurns: sharpTurns.length,
-      stopPeriodsCount: stopPeriods,
-      highSpeedPoints: highSpeedPoints.length,
-      avgSpeed: speeds.length ? speeds.reduce((a, b) => a + b, 0) / speeds.length : 0,
-      maxSpeed: speeds.length ? Math.max(...speeds) : 0,
-      avgDirectionDelta: directionDeltas.length ? directionDeltas.reduce((a, b) => a + b, 0) / directionDeltas.length : 0,
-      maxDirectionDelta: directionDeltas.length ? Math.max(...directionDeltas) : 0,
-      avgAcceleration: accelerations.length ? accelerations.reduce((a, b) => a + b, 0) / accelerations.length : 0,
-      maxAcceleration: accelerations.length ? Math.max(...accelerations) : 0,
-      totalDistance: processedData.reduce((sum, p) => sum + p.distance, 0),
-      movingPercentage: (movingPoints.length / processedData.length) * 100,
+      movingPoints,
+      movingPercentage: (movingPoints / processedData.length) * 100,
+      sharpTurns,
+      stopPeriodsCount,
+      avgSpeed,
+      maxSpeed,
+      highSpeedPoints,
+      totalDistance,
+      avgDirectionDelta,
+      maxDirectionDelta,
+      avgAcceleration,
+      maxAcceleration,
     };
   }, [processedData]);
 
-  // Get time ranges for filtering
   const timeRanges = useMemo(() => {
-    if (!processedData.length) return [];
-    
-    const uniqueHours = [...new Set(processedData.map(p => p.timestamp.getHours()))];
-    return uniqueHours.map(hour => ({
-      value: hour.toString(),
-      label: `${hour.toString().padStart(2, '0')}:00`
-    }));
+    if (!processedData || processedData.length === 0) return [];
+
+    const timeRanges = [];
+    const uniqueDates = [...new Set(processedData.map(p => 
+      p.timestamp.toLocaleDateString()
+    ))].sort();
+
+    uniqueDates.forEach((date, index) => {
+      timeRanges.push({
+        value: date,
+        label: `Date ${index + 1}: ${date}`
+      });
+    });
+
+    return timeRanges;
   }, [processedData]);
 
   const renderMetricCard = (title, value, icon, color, subtitle = '', progress = null) => (
     <Card sx={{ 
       background: 'linear-gradient(135deg, rgba(26, 35, 50, 0.95) 0%, rgba(40, 50, 60, 0.95) 100%)',
       border: '2px solid rgba(255,255,255,0.1)',
-      borderRadius: 3,
-      height: '100%',
+      borderRadius: 2,
       transition: 'all 0.3s ease',
       '&:hover': {
         borderColor: color,
@@ -242,29 +245,29 @@ const MotionBehaviorAnalysis = ({ data, loading }) => {
         boxShadow: `0 8px 25px ${color}20`,
       }
     }}>
-      <CardContent sx={{ p: 2, textAlign: 'center' }}>
+      <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
           {icon}
         </Box>
         <Typography variant="h4" sx={{ color: color, fontWeight: 'bold', mb: 0.5 }}>
-          {typeof value === 'number' ? value.toLocaleString() : value}
+          {value.toLocaleString()}
         </Typography>
         <Typography variant="body2" sx={{ color: '#b0b0b0', mb: 1 }}>
           {title}
         </Typography>
         {subtitle && (
-          <Typography variant="caption" sx={{ color: color, fontWeight: 'bold' }}>
+          <Typography variant="caption" sx={{ color: color }}>
             {subtitle}
           </Typography>
         )}
-        {progress && (
+        {progress !== null && (
           <LinearProgress
             variant="determinate"
             value={progress}
             sx={{
               mt: 1,
-              height: 6,
-              borderRadius: 3,
+              height: 4,
+              borderRadius: 2,
               bgcolor: 'rgba(255,255,255,0.1)',
               '& .MuiLinearProgress-bar': {
                 bgcolor: color,
@@ -272,127 +275,6 @@ const MotionBehaviorAnalysis = ({ data, loading }) => {
             }}
           />
         )}
-      </CardContent>
-    </Card>
-  );
-
-  const renderChart = (data, type, title, color, height = 250) => (
-    <Card sx={{ 
-      background: 'linear-gradient(135deg, rgba(26, 35, 50, 0.95) 0%, rgba(40, 50, 60, 0.95) 100%)',
-      border: '2px solid rgba(255,255,255,0.1)',
-      borderRadius: 3,
-      height: '100%',
-      transition: 'all 0.3s ease',
-      '&:hover': {
-        borderColor: color,
-        transform: 'translateY(-2px)',
-        boxShadow: `0 8px 25px ${color}20`,
-      }
-    }}>
-      <CardContent sx={{ p: 2, height: '100%' }}>
-        <Typography variant="h6" sx={{ color: color, mb: 2, textAlign: 'center', fontWeight: 'bold' }}>
-          {title}
-        </Typography>
-        <ResponsiveContainer width="100%" height={height}>
-          {type === 'line' ? (
-            <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-              <XAxis dataKey="timeShort" stroke="#b0b0b0" fontSize={10} />
-              <YAxis stroke="#b0b0b0" fontSize={10} />
-              <RechartsTooltip 
-                contentStyle={{ 
-                  backgroundColor: 'rgba(26, 35, 50, 0.95)', 
-                  border: '2px solid rgba(255,255,255,0.2)',
-                  borderRadius: 8,
-                  color: '#ffffff'
-                }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="speed" 
-                stroke={color} 
-                strokeWidth={3}
-                dot={{ fill: color, strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: color, strokeWidth: 2 }}
-              />
-            </LineChart>
-          ) : type === 'area' ? (
-            <AreaChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-              <XAxis dataKey="timeShort" stroke="#b0b0b0" fontSize={10} />
-              <YAxis stroke="#b0b0b0" fontSize={10} />
-              <RechartsTooltip 
-                contentStyle={{ 
-                  backgroundColor: 'rgba(26, 35, 50, 0.95)', 
-                  border: '2px solid rgba(255,255,255,0.2)',
-                  borderRadius: 8,
-                  color: '#ffffff'
-                }}
-              />
-              <Area 
-                type="monotone" 
-                dataKey="directionDelta" 
-                stroke={color} 
-                fill={color}
-                fillOpacity={0.3}
-                strokeWidth={2}
-              />
-            </AreaChart>
-          ) : type === 'bar' ? (
-            <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-              <XAxis dataKey="timeShort" stroke="#b0b0b0" fontSize={10} />
-              <YAxis stroke="#b0b0b0" fontSize={10} />
-              <RechartsTooltip 
-                contentStyle={{ 
-                  backgroundColor: 'rgba(26, 35, 50, 0.95)', 
-                  border: '2px solid rgba(255,255,255,0.2)',
-                  borderRadius: 8,
-                  color: '#ffffff'
-                }}
-              />
-              <Bar dataKey="directionDelta" fill={color} radius={[4, 4, 0, 0]} />
-            </BarChart>
-          ) : type === 'scatter' ? (
-            <ScatterChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-              <XAxis dataKey="timeShort" stroke="#b0b0b0" fontSize={10} />
-              <YAxis stroke="#b0b0b0" fontSize={10} />
-              <RechartsTooltip 
-                contentStyle={{ 
-                  backgroundColor: 'rgba(26, 35, 50, 0.95)', 
-                  border: '2px solid rgba(255,255,255,0.2)',
-                  borderRadius: 8,
-                  color: '#ffffff'
-                }}
-              />
-              <Scatter dataKey="distance" fill={color} />
-            </ScatterChart>
-          ) : (
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                outerRadius={80}
-                dataKey="value"
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-              >
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <RechartsTooltip 
-                contentStyle={{ 
-                  backgroundColor: 'rgba(26, 35, 50, 0.95)', 
-                  border: '2px solid rgba(255,255,255,0.2)',
-                  borderRadius: 8,
-                  color: '#ffffff'
-                }}
-              />
-            </PieChart>
-          )}
-        </ResponsiveContainer>
       </CardContent>
     </Card>
   );
@@ -865,4 +747,4 @@ const MotionBehaviorAnalysis = ({ data, loading }) => {
   );
 };
 
-export default MotionBehaviorAnalysis; 
+export default MotionBehaviorAnalysis;
