@@ -235,11 +235,9 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const authStatus = localStorage.getItem('isAuthenticated');
-    if (authStatus === 'true') {
-      setIsAuthenticated(true);
-    }
+    // Always start with login page - clear any existing authentication
+    setIsAuthenticated(false);
+    localStorage.removeItem('isAuthenticated');
   }, []);
 
   const handleLogin = (success) => {

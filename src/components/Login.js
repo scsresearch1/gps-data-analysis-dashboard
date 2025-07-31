@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   TextField,
@@ -6,22 +6,58 @@ import {
   Typography,
   Alert,
 } from '@mui/material';
-import { Science, Login as LoginIcon, Security, Analytics } from '@mui/icons-material';
+import { 
+  LocationOn, 
+  MyLocation, 
+  Navigation, 
+  Satellite, 
+  GpsFixed, 
+  Explore,
+  Login as LoginIcon,
+  Security,
+  Analytics 
+} from '@mui/icons-material';
 
 const Login = ({ onLogin }) => {
   const [username, setUsername] = useState('Admin');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
     
-    if (username === 'Admin' && password === 'Keiros@1985') {
-      onLogin(true);
-    } else {
-      setError('Invalid credentials. Please try again.');
-    }
+    // Simulate loading delay
+    setTimeout(() => {
+      if (username === 'Admin' && password === 'Keiros@1985') {
+        onLogin(true);
+      } else {
+        setError('Invalid credentials. Please try again.');
+        setIsLoading(false);
+      }
+    }, 1000);
   };
+
+  // Floating particles effect
+  const [particles, setParticles] = useState([]);
+
+  useEffect(() => {
+    const generateParticles = () => {
+      const newParticles = Array.from({ length: 20 }, (_, i) => ({
+        id: i,
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        size: Math.random() * 4 + 2,
+        speed: Math.random() * 2 + 1,
+        opacity: Math.random() * 0.5 + 0.1,
+        color: ['#00d4ff', '#ff6b35', '#00ff88', '#ffaa00'][Math.floor(Math.random() * 4)],
+      }));
+      setParticles(newParticles);
+    };
+
+    generateParticles();
+  }, []);
 
   return (
     <Box
@@ -45,9 +81,54 @@ const Login = ({ onLogin }) => {
           bottom: 0,
           background: 'radial-gradient(circle at 20% 80%, rgba(0, 212, 255, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 107, 53, 0.15) 0%, transparent 50%)',
           pointerEvents: 'none',
+          animation: 'backgroundShift 8s ease-in-out infinite',
+        },
+        '@keyframes backgroundShift': {
+          '0%, 100%': {
+            opacity: 0.3,
+            transform: 'scale(1)',
+          },
+          '50%': {
+            opacity: 0.6,
+            transform: 'scale(1.1)',
+          },
         },
       }}
     >
+      {/* Floating Particles */}
+      {particles.map((particle) => (
+        <Box
+          key={particle.id}
+          sx={{
+            position: 'absolute',
+            left: `${particle.x}%`,
+            top: `${particle.y}%`,
+            width: particle.size,
+            height: particle.size,
+            borderRadius: '50%',
+            backgroundColor: particle.color,
+            opacity: particle.opacity,
+            animation: `float ${particle.speed * 10}s linear infinite`,
+            '@keyframes float': {
+              '0%': {
+                transform: 'translateY(100vh) rotate(0deg)',
+                opacity: 0,
+              },
+              '10%': {
+                opacity: particle.opacity,
+              },
+              '90%': {
+                opacity: particle.opacity,
+              },
+              '100%': {
+                transform: 'translateY(-100px) rotate(360deg)',
+                opacity: 0,
+              },
+            },
+          }}
+        />
+      ))}
+
       <Box 
         maxWidth="xl" 
         sx={{ 
@@ -55,6 +136,8 @@ const Login = ({ onLogin }) => {
           display: 'flex', 
           alignItems: 'center',
           padding: { xs: 1, sm: 2, md: 3 },
+          position: 'relative',
+          zIndex: 1,
         }}
       >
         <Box 
@@ -78,22 +161,67 @@ const Login = ({ onLogin }) => {
               alignItems: 'center',
               textAlign: 'center',
               pr: { md: 4 },
+              animation: 'slideInLeft 1s ease-out',
+              '@keyframes slideInLeft': {
+                '0%': {
+                  opacity: 0,
+                  transform: 'translateX(-50px)',
+                },
+                '100%': {
+                  opacity: 1,
+                  transform: 'translateX(0)',
+                },
+              },
             }}
           >
-            {/* Top Flask Icon */}
+            {/* Top GPS Icon */}
             <Box
               sx={{
                 position: 'relative',
                 display: 'inline-block',
                 mb: 4,
+                animation: 'bounceIn 1.5s ease-out',
+                '@keyframes bounceIn': {
+                  '0%': {
+                    opacity: 0,
+                    transform: 'scale(0.3) translateY(-100px)',
+                  },
+                  '50%': {
+                    opacity: 1,
+                    transform: 'scale(1.05) translateY(0)',
+                  },
+                  '70%': {
+                    transform: 'scale(0.9)',
+                  },
+                  '100%': {
+                    opacity: 1,
+                    transform: 'scale(1)',
+                  },
+                },
               }}
             >
-              <Science 
+              <GpsFixed 
                 sx={{ 
                   fontSize: 120, 
                   color: '#00d4ff',
                   filter: 'drop-shadow(0 0 40px rgba(0, 212, 255, 0.8))',
-                  animation: 'pulse 2s ease-in-out infinite',
+                  animation: 'pulse 2s ease-in-out infinite, glow 3s ease-in-out infinite',
+                  '@keyframes pulse': {
+                    '0%, 100%': {
+                      transform: 'scale(1)',
+                    },
+                    '50%': {
+                      transform: 'scale(1.05)',
+                    },
+                  },
+                  '@keyframes glow': {
+                    '0%, 100%': {
+                      filter: 'drop-shadow(0 0 40px rgba(0, 212, 255, 0.8))',
+                    },
+                    '50%': {
+                      filter: 'drop-shadow(0 0 60px rgba(0, 212, 255, 1))',
+                    },
+                  },
                 }} 
               />
               <Box
@@ -107,6 +235,16 @@ const Login = ({ onLogin }) => {
                   borderRadius: '50%',
                   background: 'radial-gradient(circle, rgba(0, 212, 255, 0.3) 0%, transparent 70%)',
                   animation: 'ripple 2s ease-in-out infinite',
+                  '@keyframes ripple': {
+                    '0%': {
+                      transform: 'translate(-50%, -50%) scale(0.8)',
+                      opacity: 1,
+                    },
+                    '100%': {
+                      transform: 'translate(-50%, -50%) scale(2)',
+                      opacity: 0,
+                    },
+                  },
                 }}
               />
             </Box>
@@ -122,9 +260,32 @@ const Login = ({ onLogin }) => {
                 mb: 3,
                 letterSpacing: '0.02em',
                 lineHeight: 1.2,
+                animation: 'fadeInUp 1s ease-out 0.5s both',
+                '@keyframes fadeInUp': {
+                  '0%': {
+                    opacity: 0,
+                    transform: 'translateY(30px)',
+                  },
+                  '100%': {
+                    opacity: 1,
+                    transform: 'translateY(0)',
+                  },
+                },
               }}
             >
-              <Box component="span" sx={{ color: '#00d4ff', textShadow: '0 0 50px rgba(0, 212, 255, 0.7)' }}>
+              <Box component="span" sx={{ 
+                color: '#00d4ff', 
+                textShadow: '0 0 50px rgba(0, 212, 255, 0.7)',
+                animation: 'textGlow 3s ease-in-out infinite',
+                '@keyframes textGlow': {
+                  '0%, 100%': {
+                    textShadow: '0 0 50px rgba(0, 212, 255, 0.7)',
+                  },
+                  '50%': {
+                    textShadow: '0 0 80px rgba(0, 212, 255, 1)',
+                  },
+                },
+              }}>
                 Keiros
               </Box>
               <Box component="span" sx={{ 
@@ -133,8 +294,17 @@ const Login = ({ onLogin }) => {
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 textShadow: '0 0 30px rgba(255, 107, 53, 0.7)',
+                animation: 'gradientShift 4s ease-in-out infinite',
+                '@keyframes gradientShift': {
+                  '0%, 100%': {
+                    background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
+                  },
+                  '50%': {
+                    background: 'linear-gradient(45deg, #ff6b35, #00d4ff)',
+                  },
+                },
               }}>
-                {' '}Data Analysis
+                {' '}GPS Analysis
               </Box>
             </Typography>
             
@@ -149,16 +319,41 @@ const Login = ({ onLogin }) => {
                 fontSize: '1.8rem',
                 color: '#e0e7ff',
                 lineHeight: 1.4,
+                animation: 'fadeInUp 1s ease-out 0.8s both',
               }}
             >
-              Advanced Scientific GPS Trajectory Analysis Platform
+              Advanced GNSS Trajectory & Kinematic Analysis Platform
             </Typography>
             
-            {/* Bottom Icons */}
-            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4 }}>
-              <Security sx={{ color: '#00ff88', fontSize: 35, filter: 'drop-shadow(0 0 15px rgba(0, 255, 136, 0.6))' }} />
-              <Analytics sx={{ color: '#ffaa00', fontSize: 35, filter: 'drop-shadow(0 0 15px rgba(255, 170, 0, 0.6))' }} />
-              <Science sx={{ color: '#3742fa', fontSize: 35, filter: 'drop-shadow(0 0 15px rgba(55, 66, 250, 0.6))' }} />
+            {/* Bottom GPS Icons */}
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              gap: 4,
+              animation: 'fadeInUp 1s ease-out 1s both',
+            }}>
+              <LocationOn sx={{ 
+                color: '#00ff88', 
+                fontSize: 35, 
+                filter: 'drop-shadow(0 0 15px rgba(0, 255, 136, 0.6))',
+                animation: 'iconFloat 3s ease-in-out infinite',
+                '@keyframes iconFloat': {
+                  '0%, 100%': { transform: 'translateY(0px)' },
+                  '50%': { transform: 'translateY(-10px)' },
+                },
+              }} />
+              <Satellite sx={{ 
+                color: '#ffaa00', 
+                fontSize: 35, 
+                filter: 'drop-shadow(0 0 15px rgba(255, 170, 0, 0.6))',
+                animation: 'iconFloat 3s ease-in-out infinite 0.5s',
+              }} />
+              <Navigation sx={{ 
+                color: '#3742fa', 
+                fontSize: 35, 
+                filter: 'drop-shadow(0 0 15px rgba(55, 66, 250, 0.6))',
+                animation: 'iconFloat 3s ease-in-out infinite 1s',
+              }} />
             </Box>
           </Box>
 
@@ -170,22 +365,34 @@ const Login = ({ onLogin }) => {
               display: { xs: 'block', md: 'none' },
               textAlign: 'center',
               mb: 2,
+              animation: 'slideInDown 1s ease-out',
+              '@keyframes slideInDown': {
+                '0%': {
+                  opacity: 0,
+                  transform: 'translateY(-30px)',
+                },
+                '100%': {
+                  opacity: 1,
+                  transform: 'translateY(0)',
+                },
+              },
             }}
           >
-            {/* Top Flask Icon */}
+            {/* Top GPS Icon */}
             <Box
               sx={{
                 position: 'relative',
                 display: 'inline-block',
                 mb: 2,
+                animation: 'bounceIn 1.5s ease-out',
               }}
             >
-              <Science 
+              <GpsFixed 
                 sx={{ 
                   fontSize: { xs: 60, sm: 80 }, 
                   color: '#00d4ff',
                   filter: 'drop-shadow(0 0 30px rgba(0, 212, 255, 0.8))',
-                  animation: 'pulse 2s ease-in-out infinite',
+                  animation: 'pulse 2s ease-in-out infinite, glow 3s ease-in-out infinite',
                 }} 
               />
             </Box>
@@ -201,7 +408,11 @@ const Login = ({ onLogin }) => {
                 letterSpacing: '0.02em',
               }}
             >
-              <Box component="span" sx={{ color: '#00d4ff', textShadow: '0 0 30px rgba(0, 212, 255, 0.7)' }}>
+              <Box component="span" sx={{ 
+                color: '#00d4ff', 
+                textShadow: '0 0 30px rgba(0, 212, 255, 0.7)',
+                animation: 'textGlow 3s ease-in-out infinite',
+              }}>
                 Keiros
               </Box>
               <Box component="span" sx={{ 
@@ -209,8 +420,9 @@ const Login = ({ onLogin }) => {
                 backgroundClip: 'text',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
+                animation: 'gradientShift 4s ease-in-out infinite',
               }}>
-                {' '}Data Analysis
+                {' '}GPS Analysis
               </Box>
             </Typography>
             
@@ -226,7 +438,7 @@ const Login = ({ onLogin }) => {
                 lineHeight: 1.3,
               }}
             >
-              Scientific GPS Analysis Platform
+              GNSS Trajectory Analysis Platform
             </Typography>
           </Box>
 
@@ -239,6 +451,17 @@ const Login = ({ onLogin }) => {
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
+              animation: 'slideInRight 1s ease-out',
+              '@keyframes slideInRight': {
+                '0%': {
+                  opacity: 0,
+                  transform: 'translateX(50px)',
+                },
+                '100%': {
+                  opacity: 1,
+                  transform: 'translateX(0)',
+                },
+              },
             }}
           >
             {/* Login Form Card */}
@@ -253,6 +476,17 @@ const Login = ({ onLogin }) => {
                 boxShadow: '0 30px 100px rgba(0, 0, 0, 0.7), 0 0 80px rgba(0, 212, 255, 0.3)',
                 position: 'relative',
                 overflow: 'hidden',
+                animation: 'cardFloat 6s ease-in-out infinite',
+                '@keyframes cardFloat': {
+                  '0%, 100%': {
+                    transform: 'translateY(0px)',
+                    boxShadow: '0 30px 100px rgba(0, 0, 0, 0.7), 0 0 80px rgba(0, 212, 255, 0.3)',
+                  },
+                  '50%': {
+                    transform: 'translateY(-10px)',
+                    boxShadow: '0 40px 120px rgba(0, 0, 0, 0.8), 0 0 100px rgba(0, 212, 255, 0.5)',
+                  },
+                },
                 '&::before': {
                   content: '""',
                   position: 'absolute',
@@ -262,6 +496,21 @@ const Login = ({ onLogin }) => {
                   height: '4px',
                   background: 'linear-gradient(90deg, #00d4ff, #ff6b35, #00ff88, #00d4ff)',
                   animation: 'shimmer 4s ease-in-out infinite',
+                  '@keyframes shimmer': {
+                    '0%': {
+                      backgroundPosition: '-200% 0',
+                    },
+                    '100%': {
+                      backgroundPosition: '200% 0',
+                    },
+                  },
+                  backgroundSize: '200% 100%',
+                },
+                '&:hover': {
+                  border: '3px solid rgba(0, 212, 255, 0.7)',
+                  boxShadow: '0 40px 120px rgba(0, 0, 0, 0.8), 0 0 100px rgba(0, 212, 255, 0.5)',
+                  transform: 'translateY(-5px) scale(1.02)',
+                  transition: 'all 0.3s ease',
                 },
               }}
             >
@@ -280,13 +529,14 @@ const Login = ({ onLogin }) => {
                     mb: { xs: 3, sm: 4 },
                     fontWeight: 700,
                     fontSize: { xs: '1.8rem', sm: '2rem', md: '2.5rem' },
+                    animation: 'fadeInUp 1s ease-out 0.3s both',
                   }}
                 >
                   <Box component="span" sx={{ color: '#00d4ff' }}>
-                    Access
+                    GPS
                   </Box>
                   <Box component="span" sx={{ color: '#ff6b35' }}>
-                    {' '}Platform
+                    {' '}Access Portal
                   </Box>
                 </Typography>
 
@@ -302,17 +552,25 @@ const Login = ({ onLogin }) => {
                     size="large"
                     sx={{
                       mb: { xs: 3, sm: 4 },
+                      animation: 'fadeInUp 1s ease-out 0.5s both',
                       '& .MuiOutlinedInput-root': {
                         fontSize: { xs: '1.4rem', sm: '1.6rem', md: '1.8rem' },
                         height: { xs: 64, sm: 70, md: 80 },
                         backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                        '&:hover fieldset': {
-                          borderColor: 'rgba(0, 212, 255, 0.8)',
-                          borderWidth: 3,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                          fieldset: {
+                            borderColor: 'rgba(0, 212, 255, 0.8)',
+                            borderWidth: 3,
+                          },
                         },
-                        '&.Mui-focused fieldset': {
-                          borderColor: '#00d4ff',
-                          borderWidth: 3,
+                        '&.Mui-focused': {
+                          fieldset: {
+                            borderColor: '#00d4ff',
+                            borderWidth: 3,
+                          },
+                          backgroundColor: 'rgba(255, 255, 255, 0.2)',
                         },
                         '& input': {
                           color: '#ffffff',
@@ -343,17 +601,25 @@ const Login = ({ onLogin }) => {
                     size="large"
                     sx={{
                       mb: { xs: 3, sm: 4 },
+                      animation: 'fadeInUp 1s ease-out 0.7s both',
                       '& .MuiOutlinedInput-root': {
                         fontSize: { xs: '1.4rem', sm: '1.6rem', md: '1.8rem' },
                         height: { xs: 64, sm: 70, md: 80 },
                         backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                        '&:hover fieldset': {
-                          borderColor: 'rgba(0, 212, 255, 0.8)',
-                          borderWidth: 3,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                          fieldset: {
+                            borderColor: 'rgba(0, 212, 255, 0.8)',
+                            borderWidth: 3,
+                          },
                         },
-                        '&.Mui-focused fieldset': {
-                          borderColor: '#00d4ff',
-                          borderWidth: 3,
+                        '&.Mui-focused': {
+                          fieldset: {
+                            borderColor: '#00d4ff',
+                            borderWidth: 3,
+                          },
+                          backgroundColor: 'rgba(255, 255, 255, 0.2)',
                         },
                         '& input': {
                           color: '#ffffff',
@@ -382,6 +648,12 @@ const Login = ({ onLogin }) => {
                         borderRadius: 3,
                         fontSize: { xs: '1rem', sm: '1.1rem', md: '1.2rem' },
                         fontWeight: 500,
+                        animation: 'shake 0.5s ease-in-out',
+                        '@keyframes shake': {
+                          '0%, 100%': { transform: 'translateX(0)' },
+                          '25%': { transform: 'translateX(-5px)' },
+                          '75%': { transform: 'translateX(5px)' },
+                        },
                         '& .MuiAlert-icon': {
                           color: '#ff4757',
                           fontSize: { xs: '1.5rem', sm: '1.6rem', md: '1.8rem' },
@@ -397,7 +669,27 @@ const Login = ({ onLogin }) => {
                     fullWidth
                     variant="contained"
                     size="large"
-                    startIcon={<LoginIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.4rem', md: '1.6rem' } }} />}
+                    disabled={isLoading}
+                    startIcon={
+                      isLoading ? (
+                        <Box
+                          sx={{
+                            width: 20,
+                            height: 20,
+                            border: '2px solid rgba(255,255,255,0.3)',
+                            borderTop: '2px solid #ffffff',
+                            borderRadius: '50%',
+                            animation: 'spin 1s linear infinite',
+                            '@keyframes spin': {
+                              '0%': { transform: 'rotate(0deg)' },
+                              '100%': { transform: 'rotate(360deg)' },
+                            },
+                          }}
+                        />
+                      ) : (
+                        <MyLocation sx={{ fontSize: { xs: '1.2rem', sm: '1.4rem', md: '1.6rem' } }} />
+                      )
+                    }
                     sx={{
                       py: { xs: 2, sm: 2.5, md: 3 },
                       fontSize: { xs: '1rem', sm: '1.1rem', md: '1.3rem' },
@@ -408,16 +700,25 @@ const Login = ({ onLogin }) => {
                       border: '2px solid rgba(0, 212, 255, 0.4)',
                       textTransform: 'none',
                       letterSpacing: '0.02em',
+                      animation: 'fadeInUp 1s ease-out 0.9s both',
+                      transition: 'all 0.3s ease',
                       '&:hover': {
                         background: 'linear-gradient(45deg, #00e5ff 0%, #00b3e6 50%, #00e5ff 100%)',
                         boxShadow: '0 20px 60px rgba(0, 212, 255, 0.7)',
-                        transform: 'translateY(-3px)',
+                        transform: 'translateY(-3px) scale(1.02)',
                         border: '2px solid rgba(0, 212, 255, 0.7)',
                       },
-                      transition: 'all 0.3s ease',
+                      '&:active': {
+                        transform: 'translateY(-1px) scale(0.98)',
+                      },
+                      '&:disabled': {
+                        background: 'linear-gradient(45deg, #666 0%, #999 50%, #666 100%)',
+                        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
+                        transform: 'none',
+                      },
                     }}
                   >
-                    → Access Scientific Analysis Platform
+                    {isLoading ? 'Connecting to GPS Network...' : '→ Access GPS Analysis Platform'}
                   </Button>
                 </form>
 
@@ -433,6 +734,7 @@ const Login = ({ onLogin }) => {
                     fontSize: { xs: '0.9rem', sm: '1rem', md: '1.2rem' },
                     fontWeight: 400,
                     color: '#a8b5c6',
+                    animation: 'fadeInUp 1s ease-out 1.1s both',
                   }}
                 >
                   Advanced GNSS Trajectory Analysis & Kinematic Dynamics
