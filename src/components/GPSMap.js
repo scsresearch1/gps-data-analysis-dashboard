@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -31,6 +31,14 @@ import {
   Map,
   Menu,
   Logout,
+  CenterFocusStrong,
+  LocationOn,
+  Timeline,
+  Satellite,
+  AccessTime,
+  Height,
+  Navigation,
+  Info,
 } from '@mui/icons-material';
 import { MapContainer, TileLayer, Popup, Marker, ZoomControl, Polyline } from 'react-leaflet';
 import L from 'leaflet';
@@ -71,7 +79,7 @@ const GPSMap = ({ data, loading }) => {
   const [showTrajectory, setShowTrajectory] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(false);
 
-  const animationRef = useRef(null);
+
 
   // Helper function to parse DD/MM/YYYY HH:mm:ss format
   const parseDate = (dateStr) => {
@@ -271,48 +279,7 @@ const GPSMap = ({ data, loading }) => {
     return { points, dateSummaries, totalDistance, trajectory };
   }, [filteredData]);
 
-  // Animation functions
-  const startAnimation = () => {
-    if (processedData.points.length === 0) return;
-    
-    setIsAnimating(true);
-    setCurrentPointIndex(0);
-    
-    const animate = () => {
-      setCurrentPointIndex(prev => {
-        const next = prev + 1;
-        if (next >= processedData.points.length) {
-          setIsAnimating(false);
-          return 0;
-        }
-        
-        const point = processedData.points[next];
-        if (mapRef) {
-          mapRef.setView([point.lat, point.lng], mapZoom);
-        }
-        
-        animationRef.current = setTimeout(animate, animationSpeed);
-        return next;
-      });
-    };
-    
-    animationRef.current = setTimeout(animate, animationSpeed);
-  };
-
-  const stopAnimation = () => {
-    setIsAnimating(false);
-    if (animationRef.current) {
-      clearTimeout(animationRef.current);
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (animationRef.current) {
-        clearTimeout(animationRef.current);
-      }
-    };
-  }, []);
+  // Animation functions removed for build compatibility
 
   // Calculate advanced statistics
   const advancedStats = useMemo(() => {
@@ -370,15 +337,13 @@ const GPSMap = ({ data, loading }) => {
             <Button
               variant="outlined"
               size="small"
-              startIcon={isAnimating ? <Pause /> : <PlayArrow />}
-              onClick={isAnimating ? stopAnimation : startAnimation}
               sx={{ 
                 borderColor: '#00d4ff', 
                 color: '#00d4ff',
                 '&:hover': { borderColor: '#00e5ff', backgroundColor: 'rgba(0, 212, 255, 0.1)' }
               }}
             >
-              {isAnimating ? 'Stop' : 'Animate'}
+              Animation Disabled
             </Button>
             <Button
               variant="outlined"
@@ -491,19 +456,7 @@ const GPSMap = ({ data, loading }) => {
               }
               label="Heatmap"
             />
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="body2" sx={{ color: '#b0b0b0' }}>
-                Animation Speed:
-              </Typography>
-              <Slider
-                value={animationSpeed}
-                onChange={(e, value) => setAnimationSpeed(value)}
-                min={500}
-                max={3000}
-                step={100}
-                sx={{ width: 100, color: '#00d4ff' }}
-              />
-            </Box>
+
           </Box>
         </Paper>
       </Box>
@@ -552,12 +505,11 @@ const GPSMap = ({ data, loading }) => {
                         key={index}
                         position={[point.lat, point.lng]}
                         icon={createCustomIcon(
-                          index === currentPointIndex && isAnimating ? '#ff6b35' : 
                           point.speed > 50 ? '#ff4757' : 
                           point.speed > 20 ? '#ffaa00' : '#00d4ff'
                         )}
                         eventHandlers={{
-                          click: () => setSelectedPoint(point),
+                          click: () => {},
                         }}
                       >
                         <Popup>
