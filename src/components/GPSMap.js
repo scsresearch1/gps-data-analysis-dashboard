@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -71,10 +71,8 @@ const GPSMap = ({ data, loading }) => {
   const [showTrajectory, setShowTrajectory] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(false);
 
-
-
-  // Helper function to parse DD/MM/YYYY HH:mm:ss format
-  const parseDate = (dateStr) => {
+  // Memoized helper function to parse DD/MM/YYYY HH:mm:ss format
+  const parseDate = useCallback((dateStr) => {
     try {
       const parts = dateStr.split(' ');
       if (parts.length !== 2) return null;
@@ -105,10 +103,10 @@ const GPSMap = ({ data, loading }) => {
       console.error('parseDate error:', error);
       return null;
     }
-  };
+  }, []);
 
-  // Calculate distance between two points using Haversine formula
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  // Memoized distance calculation
+  const calculateDistance = useCallback((lat1, lon1, lat2, lon2) => {
     const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -118,9 +116,9 @@ const GPSMap = ({ data, loading }) => {
       Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c;
-  };
+  }, []);
 
-  // Process data to extract dates and group by date
+  // Memoized dates extraction
   const dates = useMemo(() => {
     if (!data || data.length === 0) return [];
     
@@ -139,9 +137,9 @@ const GPSMap = ({ data, loading }) => {
     }))].filter(Boolean).sort();
     
     return uniqueDates;
-  }, [data]);
+  }, [data, parseDate]);
 
-  // Filter data by selected date
+  // Memoized filtered data
   const filteredData = useMemo(() => {
     if (!data || data.length === 0) return [];
     
@@ -162,9 +160,9 @@ const GPSMap = ({ data, loading }) => {
         return false;
       }
     });
-  }, [data, selectedDate]);
+  }, [data, selectedDate, parseDate]);
 
-  // Process data to create individual points with distances
+  // Optimized data processing with better memoization
   const processedData = useMemo(() => {
     if (!filteredData || filteredData.length === 0) {
       return { points: [], dateSummaries: [], totalDistance: 0, trajectory: [] };
@@ -175,26 +173,35 @@ const GPSMap = ({ data, loading }) => {
     const trajectory = [];
     let totalDistance = 0;
     
-    // Group data by date for multiple date analysis
-    const groupedByDate = {};
-    filteredData.forEach(row => {
+    // Pre-process all dates to avoid repeated parsing
+    const processedRows = filteredData.map(row => {
       const dateStr = row['Transmitted Time'];
-      if (!dateStr) return;
+      if (!dateStr) return null;
       
       try {
         const date = parseDate(dateStr);
-        if (!date || isNaN(date.getTime())) return;
+        if (!date || isNaN(date.getTime())) return null;
         
-        const dateKey = format(date, 'yyyy-MM-dd');
-        
-        if (!groupedByDate[dateKey]) {
-          groupedByDate[dateKey] = [];
-        }
-        groupedByDate[dateKey].push(row);
+        return {
+          ...row,
+          parsedDate: date,
+          dateKey: format(date, 'yyyy-MM-dd'),
+        };
       } catch (error) {
         console.warn('Invalid date format in grouping:', dateStr);
-        return;
+        return null;
       }
+    }).filter(Boolean);
+
+    // Group data by date for multiple date analysis
+    const groupedByDate = {};
+    processedRows.forEach(row => {
+      const dateKey = row.dateKey;
+      
+      if (!groupedByDate[dateKey]) {
+        groupedByDate[dateKey] = [];
+      }
+      groupedByDate[dateKey].push(row);
     });
 
     // Process each date group
@@ -202,18 +209,8 @@ const GPSMap = ({ data, loading }) => {
       const datePoints = [];
       let dateDistance = 0;
       
-      // Sort by time
-      dateData.sort((a, b) => {
-        try {
-          const dateA = parseDate(a['Transmitted Time']);
-          const dateB = parseDate(b['Transmitted Time']);
-          
-          if (!dateA || !dateB || isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return 0;
-          return dateA - dateB;
-        } catch (error) {
-          return 0;
-        }
-      });
+      // Sort by time using pre-parsed dates
+      dateData.sort((a, b) => a.parsedDate - b.parsedDate);
       
       // Create individual points
       dateData.forEach((row, index) => {
@@ -233,7 +230,7 @@ const GPSMap = ({ data, loading }) => {
           pointNumber: index + 1,
           distanceFromPrevious: 0,
           speed: 0,
-          timestamp: parseDate(row['Transmitted Time']),
+          timestamp: row.parsedDate,
         };
         
         // Calculate distance from previous point
@@ -269,11 +266,9 @@ const GPSMap = ({ data, loading }) => {
     });
     
     return { points, dateSummaries, totalDistance, trajectory };
-  }, [filteredData]);
+  }, [filteredData, parseDate, calculateDistance]);
 
-  // Animation functions removed for build compatibility
-
-  // Calculate advanced statistics
+  // Memoized advanced statistics
   const advancedStats = useMemo(() => {
     if (!processedData.points.length) return {};
     
@@ -291,6 +286,20 @@ const GPSMap = ({ data, loading }) => {
       dateCount: processedData.dateSummaries.length,
     };
   }, [processedData]);
+
+  // Memoized marker icons to prevent recreation
+  const markerIcons = useMemo(() => {
+    return {
+      slow: createCustomIcon('#00d4ff'),
+      medium: createCustomIcon('#ffaa00'),
+      fast: createCustomIcon('#ff4757'),
+    };
+  }, []);
+
+  // Memoized marker click handler
+  const handleMarkerClick = useCallback(() => {
+    // Marker click handler - currently empty to avoid unused variable warnings
+  }, []);
 
   if (loading) {
     return (
@@ -448,7 +457,6 @@ const GPSMap = ({ data, loading }) => {
               }
               label="Heatmap"
             />
-
           </Box>
         </Paper>
       </Box>
@@ -491,98 +499,101 @@ const GPSMap = ({ data, loading }) => {
                       />
                     )}
                     
-                    {/* Individual GPS point markers */}
-                    {showMarkers && processedData.points.map((point, index) => (
-                      <Marker
-                        key={index}
-                        position={[point.lat, point.lng]}
-                        icon={createCustomIcon(
-                          point.speed > 50 ? '#ff4757' : 
-                          point.speed > 20 ? '#ffaa00' : '#00d4ff'
-                        )}
-                        eventHandlers={{
-                          click: () => {},
-                        }}
-                      >
-                        <Popup>
-                          <Box sx={{ minWidth: 200 }}>
-                            <Typography variant="subtitle2" sx={{ color: '#00d4ff', fontWeight: 'bold' }}>
-                              GPS Point #{point.pointNumber}
-                            </Typography>
-                            <Divider sx={{ my: 1 }} />
-                            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
-                              <Box>
-                                <Typography variant="caption" sx={{ color: '#b0b0b0' }}>
-                                  <AccessTime sx={{ fontSize: '0.8rem', mr: 0.5 }} />
-                                  Time
-                                </Typography>
-                                <Typography variant="body2">
-                                  {(() => {
-                                    try {
-                                      return format(new Date(point.time), 'HH:mm:ss');
-                                    } catch (error) {
-                                      return 'Invalid time';
-                                    }
-                                  })()}
-                                </Typography>
+                    {/* Individual GPS point markers - Optimized rendering */}
+                    {showMarkers && processedData.points.map((point, index) => {
+                      const icon = point.speed > 50 ? markerIcons.fast : 
+                                  point.speed > 20 ? markerIcons.medium : 
+                                  markerIcons.slow;
+                      
+                      return (
+                        <Marker
+                          key={index}
+                          position={[point.lat, point.lng]}
+                          icon={icon}
+                          eventHandlers={{
+                            click: handleMarkerClick,
+                          }}
+                        >
+                          <Popup>
+                            <Box sx={{ minWidth: 200 }}>
+                              <Typography variant="subtitle2" sx={{ color: '#00d4ff', fontWeight: 'bold' }}>
+                                GPS Point #{point.pointNumber}
+                              </Typography>
+                              <Divider sx={{ my: 1 }} />
+                              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+                                <Box>
+                                  <Typography variant="caption" sx={{ color: '#b0b0b0' }}>
+                                    <AccessTime sx={{ fontSize: '0.8rem', mr: 0.5 }} />
+                                    Time
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {(() => {
+                                      try {
+                                        return format(new Date(point.time), 'HH:mm:ss');
+                                      } catch (error) {
+                                        return 'Invalid time';
+                                      }
+                                    })()}
+                                  </Typography>
+                                </Box>
+                                <Box>
+                                  <Typography variant="caption" sx={{ color: '#b0b0b0' }}>
+                                    <Speed sx={{ fontSize: '0.8rem', mr: 0.5 }} />
+                                    Speed
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {point.speed.toFixed(1)} km/h
+                                  </Typography>
+                                </Box>
+                                <Box>
+                                  <Typography variant="caption" sx={{ color: '#b0b0b0' }}>
+                                    <LocationOn sx={{ fontSize: '0.8rem', mr: 0.5 }} />
+                                    Coordinates
+                                  </Typography>
+                                  <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                                    {point.lat.toFixed(6)}, {point.lng.toFixed(6)}
+                                  </Typography>
+                                </Box>
+                                <Box>
+                                  <Typography variant="caption" sx={{ color: '#b0b0b0' }}>
+                                    <Height sx={{ fontSize: '0.8rem', mr: 0.5 }} />
+                                    Altitude
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {point.altitude.toFixed(1)} m
+                                  </Typography>
+                                </Box>
+                                <Box>
+                                  <Typography variant="caption" sx={{ color: '#b0b0b0' }}>
+                                    <Navigation sx={{ fontSize: '0.8rem', mr: 0.5 }} />
+                                    Direction
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {point.direction.toFixed(1)}°
+                                  </Typography>
+                                </Box>
+                                <Box>
+                                  <Typography variant="caption" sx={{ color: '#b0b0b0' }}>
+                                    <Satellite sx={{ fontSize: '0.8rem', mr: 0.5 }} />
+                                    Satellites
+                                  </Typography>
+                                  <Typography variant="body2">
+                                    {point.satellites}
+                                  </Typography>
+                                </Box>
                               </Box>
-                              <Box>
-                                <Typography variant="caption" sx={{ color: '#b0b0b0' }}>
-                                  <Speed sx={{ fontSize: '0.8rem', mr: 0.5 }} />
-                                  Speed
-                                </Typography>
-                                <Typography variant="body2">
-                                  {point.speed.toFixed(1)} km/h
-                                </Typography>
-                              </Box>
-                              <Box>
-                                <Typography variant="caption" sx={{ color: '#b0b0b0' }}>
-                                  <LocationOn sx={{ fontSize: '0.8rem', mr: 0.5 }} />
-                                  Coordinates
-                                </Typography>
-                                <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
-                                  {point.lat.toFixed(6)}, {point.lng.toFixed(6)}
-                                </Typography>
-                              </Box>
-                              <Box>
-                                <Typography variant="caption" sx={{ color: '#b0b0b0' }}>
-                                  <Height sx={{ fontSize: '0.8rem', mr: 0.5 }} />
-                                  Altitude
-                                </Typography>
-                                <Typography variant="body2">
-                                  {point.altitude.toFixed(1)} m
-                                </Typography>
-                              </Box>
-                              <Box>
-                                <Typography variant="caption" sx={{ color: '#b0b0b0' }}>
-                                  <Navigation sx={{ fontSize: '0.8rem', mr: 0.5 }} />
-                                  Direction
-                                </Typography>
-                                <Typography variant="body2">
-                                  {point.direction.toFixed(1)}°
-                                </Typography>
-                              </Box>
-                              <Box>
-                                <Typography variant="caption" sx={{ color: '#b0b0b0' }}>
-                                  <Satellite sx={{ fontSize: '0.8rem', mr: 0.5 }} />
-                                  Satellites
-                                </Typography>
-                                <Typography variant="body2">
-                                  {point.satellites}
-                                </Typography>
-                              </Box>
+                              {point.distanceFromPrevious > 0 && (
+                                <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                                  <Typography variant="caption" sx={{ color: '#00ff88' }}>
+                                    Distance from previous: {(point.distanceFromPrevious * 1000).toFixed(1)} m
+                                  </Typography>
+                                </Box>
+                              )}
                             </Box>
-                            {point.distanceFromPrevious > 0 && (
-                              <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                                <Typography variant="caption" sx={{ color: '#00ff88' }}>
-                                  Distance from previous: {(point.distanceFromPrevious * 1000).toFixed(1)} m
-                                </Typography>
-                              </Box>
-                            )}
-                          </Box>
-                        </Popup>
-                      </Marker>
-                    ))}
+                          </Popup>
+                        </Marker>
+                      );
+                    })}
                   </MapContainer>
                 </Box>
               )}

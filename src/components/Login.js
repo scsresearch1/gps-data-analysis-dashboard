@@ -11,11 +11,7 @@ import {
   MyLocation, 
   Navigation, 
   Satellite, 
-  GpsFixed, 
-  Explore,
-  Login as LoginIcon,
-  Security,
-  Analytics 
+  GpsFixed
 } from '@mui/icons-material';
 
 const Login = ({ onLogin }) => {
@@ -39,24 +35,29 @@ const Login = ({ onLogin }) => {
     }, 1000);
   };
 
-  // Floating particles effect
+  // Optimized floating particles effect - reduced from 20 to 8 particles
   const [particles, setParticles] = useState([]);
 
   useEffect(() => {
     const generateParticles = () => {
-      const newParticles = Array.from({ length: 20 }, (_, i) => ({
+      const newParticles = Array.from({ length: 8 }, (_, i) => ({
         id: i,
         x: Math.random() * 100,
         y: Math.random() * 100,
-        size: Math.random() * 4 + 2,
-        speed: Math.random() * 2 + 1,
-        opacity: Math.random() * 0.5 + 0.1,
+        size: Math.random() * 3 + 2,
+        speed: Math.random() * 1.5 + 0.5,
+        opacity: Math.random() * 0.3 + 0.1,
         color: ['#00d4ff', '#ff6b35', '#00ff88', '#ffaa00'][Math.floor(Math.random() * 4)],
       }));
       setParticles(newParticles);
     };
 
     generateParticles();
+
+    // Cleanup function
+    return () => {
+      setParticles([]);
+    };
   }, []);
 
   return (
@@ -81,7 +82,7 @@ const Login = ({ onLogin }) => {
           bottom: 0,
           background: 'radial-gradient(circle at 20% 80%, rgba(0, 212, 255, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 107, 53, 0.15) 0%, transparent 50%)',
           pointerEvents: 'none',
-          animation: 'backgroundShift 8s ease-in-out infinite',
+          animation: 'backgroundShift 12s ease-in-out infinite',
         },
         '@keyframes backgroundShift': {
           '0%, 100%': {
@@ -89,13 +90,13 @@ const Login = ({ onLogin }) => {
             transform: 'scale(1)',
           },
           '50%': {
-            opacity: 0.6,
-            transform: 'scale(1.1)',
+            opacity: 0.5,
+            transform: 'scale(1.05)',
           },
         },
       }}
     >
-      {/* Floating Particles */}
+      {/* Optimized Floating Particles - Reduced count and simplified animations */}
       {particles.map((particle) => (
         <Box
           key={particle.id}
@@ -108,10 +109,10 @@ const Login = ({ onLogin }) => {
             borderRadius: '50%',
             backgroundColor: particle.color,
             opacity: particle.opacity,
-            animation: `float ${particle.speed * 10}s linear infinite`,
+            animation: `float ${particle.speed * 15}s linear infinite`,
             '@keyframes float': {
               '0%': {
-                transform: 'translateY(100vh) rotate(0deg)',
+                transform: 'translateY(100vh)',
                 opacity: 0,
               },
               '10%': {
@@ -121,7 +122,7 @@ const Login = ({ onLogin }) => {
                 opacity: particle.opacity,
               },
               '100%': {
-                transform: 'translateY(-100px) rotate(360deg)',
+                transform: 'translateY(-100px)',
                 opacity: 0,
               },
             },
@@ -161,11 +162,11 @@ const Login = ({ onLogin }) => {
               alignItems: 'center',
               textAlign: 'center',
               pr: { md: 4 },
-              animation: 'slideInLeft 1s ease-out',
+              animation: 'slideInLeft 0.8s ease-out',
               '@keyframes slideInLeft': {
                 '0%': {
                   opacity: 0,
-                  transform: 'translateX(-50px)',
+                  transform: 'translateX(-30px)',
                 },
                 '100%': {
                   opacity: 1,
@@ -180,18 +181,15 @@ const Login = ({ onLogin }) => {
                 position: 'relative',
                 display: 'inline-block',
                 mb: 4,
-                animation: 'bounceIn 1.5s ease-out',
+                animation: 'bounceIn 1s ease-out',
                 '@keyframes bounceIn': {
                   '0%': {
                     opacity: 0,
-                    transform: 'scale(0.3) translateY(-100px)',
+                    transform: 'scale(0.5) translateY(-50px)',
                   },
-                  '50%': {
+                  '60%': {
                     opacity: 1,
                     transform: 'scale(1.05) translateY(0)',
-                  },
-                  '70%': {
-                    transform: 'scale(0.9)',
                   },
                   '100%': {
                     opacity: 1,
@@ -204,22 +202,14 @@ const Login = ({ onLogin }) => {
                 sx={{ 
                   fontSize: 120, 
                   color: '#00d4ff',
-                  filter: 'drop-shadow(0 0 40px rgba(0, 212, 255, 0.8))',
-                  animation: 'pulse 2s ease-in-out infinite, glow 3s ease-in-out infinite',
+                  filter: 'drop-shadow(0 0 30px rgba(0, 212, 255, 0.6))',
+                  animation: 'pulse 3s ease-in-out infinite',
                   '@keyframes pulse': {
                     '0%, 100%': {
                       transform: 'scale(1)',
                     },
                     '50%': {
-                      transform: 'scale(1.05)',
-                    },
-                  },
-                  '@keyframes glow': {
-                    '0%, 100%': {
-                      filter: 'drop-shadow(0 0 40px rgba(0, 212, 255, 0.8))',
-                    },
-                    '50%': {
-                      filter: 'drop-shadow(0 0 60px rgba(0, 212, 255, 1))',
+                      transform: 'scale(1.03)',
                     },
                   },
                 }} 
@@ -230,18 +220,18 @@ const Login = ({ onLogin }) => {
                   top: '50%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
-                  width: 100,
-                  height: 100,
+                  width: 80,
+                  height: 80,
                   borderRadius: '50%',
-                  background: 'radial-gradient(circle, rgba(0, 212, 255, 0.3) 0%, transparent 70%)',
-                  animation: 'ripple 2s ease-in-out infinite',
+                  background: 'radial-gradient(circle, rgba(0, 212, 255, 0.2) 0%, transparent 70%)',
+                  animation: 'ripple 3s ease-in-out infinite',
                   '@keyframes ripple': {
                     '0%': {
                       transform: 'translate(-50%, -50%) scale(0.8)',
                       opacity: 1,
                     },
                     '100%': {
-                      transform: 'translate(-50%, -50%) scale(2)',
+                      transform: 'translate(-50%, -50%) scale(1.5)',
                       opacity: 0,
                     },
                   },
@@ -260,11 +250,11 @@ const Login = ({ onLogin }) => {
                 mb: 3,
                 letterSpacing: '0.02em',
                 lineHeight: 1.2,
-                animation: 'fadeInUp 1s ease-out 0.5s both',
+                animation: 'fadeInUp 0.8s ease-out 0.3s both',
                 '@keyframes fadeInUp': {
                   '0%': {
                     opacity: 0,
-                    transform: 'translateY(30px)',
+                    transform: 'translateY(20px)',
                   },
                   '100%': {
                     opacity: 1,
@@ -275,14 +265,14 @@ const Login = ({ onLogin }) => {
             >
               <Box component="span" sx={{ 
                 color: '#00d4ff', 
-                textShadow: '0 0 50px rgba(0, 212, 255, 0.7)',
-                animation: 'textGlow 3s ease-in-out infinite',
+                textShadow: '0 0 30px rgba(0, 212, 255, 0.6)',
+                animation: 'textGlow 4s ease-in-out infinite',
                 '@keyframes textGlow': {
                   '0%, 100%': {
-                    textShadow: '0 0 50px rgba(0, 212, 255, 0.7)',
+                    textShadow: '0 0 30px rgba(0, 212, 255, 0.6)',
                   },
                   '50%': {
-                    textShadow: '0 0 80px rgba(0, 212, 255, 1)',
+                    textShadow: '0 0 50px rgba(0, 212, 255, 0.8)',
                   },
                 },
               }}>
@@ -293,8 +283,8 @@ const Login = ({ onLogin }) => {
                 backgroundClip: 'text',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                textShadow: '0 0 30px rgba(255, 107, 53, 0.7)',
-                animation: 'gradientShift 4s ease-in-out infinite',
+                textShadow: '0 0 20px rgba(255, 107, 53, 0.5)',
+                animation: 'gradientShift 6s ease-in-out infinite',
                 '@keyframes gradientShift': {
                   '0%, 100%': {
                     background: 'linear-gradient(45deg, #00d4ff, #ff6b35)',
@@ -319,7 +309,7 @@ const Login = ({ onLogin }) => {
                 fontSize: '1.8rem',
                 color: '#e0e7ff',
                 lineHeight: 1.4,
-                animation: 'fadeInUp 1s ease-out 0.8s both',
+                animation: 'fadeInUp 0.8s ease-out 0.5s both',
               }}
             >
               Advanced GNSS Trajectory & Kinematic Analysis Platform
@@ -330,29 +320,29 @@ const Login = ({ onLogin }) => {
               display: 'flex', 
               justifyContent: 'center', 
               gap: 4,
-              animation: 'fadeInUp 1s ease-out 1s both',
+              animation: 'fadeInUp 0.8s ease-out 0.7s both',
             }}>
               <LocationOn sx={{ 
                 color: '#00ff88', 
                 fontSize: 35, 
-                filter: 'drop-shadow(0 0 15px rgba(0, 255, 136, 0.6))',
-                animation: 'iconFloat 3s ease-in-out infinite',
+                filter: 'drop-shadow(0 0 10px rgba(0, 255, 136, 0.4))',
+                animation: 'iconFloat 4s ease-in-out infinite',
                 '@keyframes iconFloat': {
                   '0%, 100%': { transform: 'translateY(0px)' },
-                  '50%': { transform: 'translateY(-10px)' },
+                  '50%': { transform: 'translateY(-8px)' },
                 },
               }} />
               <Satellite sx={{ 
                 color: '#ffaa00', 
                 fontSize: 35, 
-                filter: 'drop-shadow(0 0 15px rgba(255, 170, 0, 0.6))',
-                animation: 'iconFloat 3s ease-in-out infinite 0.5s',
+                filter: 'drop-shadow(0 0 10px rgba(255, 170, 0, 0.4))',
+                animation: 'iconFloat 4s ease-in-out infinite 0.7s',
               }} />
               <Navigation sx={{ 
                 color: '#3742fa', 
                 fontSize: 35, 
-                filter: 'drop-shadow(0 0 15px rgba(55, 66, 250, 0.6))',
-                animation: 'iconFloat 3s ease-in-out infinite 1s',
+                filter: 'drop-shadow(0 0 10px rgba(55, 66, 250, 0.4))',
+                animation: 'iconFloat 4s ease-in-out infinite 1.4s',
               }} />
             </Box>
           </Box>
@@ -365,11 +355,11 @@ const Login = ({ onLogin }) => {
               display: { xs: 'block', md: 'none' },
               textAlign: 'center',
               mb: 2,
-              animation: 'slideInDown 1s ease-out',
+              animation: 'slideInDown 0.8s ease-out',
               '@keyframes slideInDown': {
                 '0%': {
                   opacity: 0,
-                  transform: 'translateY(-30px)',
+                  transform: 'translateY(-20px)',
                 },
                 '100%': {
                   opacity: 1,
@@ -384,15 +374,15 @@ const Login = ({ onLogin }) => {
                 position: 'relative',
                 display: 'inline-block',
                 mb: 2,
-                animation: 'bounceIn 1.5s ease-out',
+                animation: 'bounceIn 1s ease-out',
               }}
             >
               <GpsFixed 
                 sx={{ 
                   fontSize: { xs: 60, sm: 80 }, 
                   color: '#00d4ff',
-                  filter: 'drop-shadow(0 0 30px rgba(0, 212, 255, 0.8))',
-                  animation: 'pulse 2s ease-in-out infinite, glow 3s ease-in-out infinite',
+                  filter: 'drop-shadow(0 0 20px rgba(0, 212, 255, 0.6))',
+                  animation: 'pulse 3s ease-in-out infinite',
                 }} 
               />
             </Box>
@@ -410,8 +400,8 @@ const Login = ({ onLogin }) => {
             >
               <Box component="span" sx={{ 
                 color: '#00d4ff', 
-                textShadow: '0 0 30px rgba(0, 212, 255, 0.7)',
-                animation: 'textGlow 3s ease-in-out infinite',
+                textShadow: '0 0 20px rgba(0, 212, 255, 0.6)',
+                animation: 'textGlow 4s ease-in-out infinite',
               }}>
                 Keiros
               </Box>
@@ -420,7 +410,7 @@ const Login = ({ onLogin }) => {
                 backgroundClip: 'text',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                animation: 'gradientShift 4s ease-in-out infinite',
+                animation: 'gradientShift 6s ease-in-out infinite',
               }}>
                 {' '}GPS Analysis
               </Box>
@@ -451,11 +441,11 @@ const Login = ({ onLogin }) => {
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
-              animation: 'slideInRight 1s ease-out',
+              animation: 'slideInRight 0.8s ease-out',
               '@keyframes slideInRight': {
                 '0%': {
                   opacity: 0,
-                  transform: 'translateX(50px)',
+                  transform: 'translateX(30px)',
                 },
                 '100%': {
                   opacity: 1,
@@ -473,18 +463,18 @@ const Login = ({ onLogin }) => {
                 backdropFilter: 'blur(20px)',
                 border: '3px solid rgba(0, 212, 255, 0.4)',
                 borderRadius: { xs: 16, sm: 20, md: 24 },
-                boxShadow: '0 30px 100px rgba(0, 0, 0, 0.7), 0 0 80px rgba(0, 212, 255, 0.3)',
+                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.6), 0 0 50px rgba(0, 212, 255, 0.2)',
                 position: 'relative',
                 overflow: 'hidden',
-                animation: 'cardFloat 6s ease-in-out infinite',
+                animation: 'cardFloat 8s ease-in-out infinite',
                 '@keyframes cardFloat': {
                   '0%, 100%': {
                     transform: 'translateY(0px)',
-                    boxShadow: '0 30px 100px rgba(0, 0, 0, 0.7), 0 0 80px rgba(0, 212, 255, 0.3)',
+                    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.6), 0 0 50px rgba(0, 212, 255, 0.2)',
                   },
                   '50%': {
-                    transform: 'translateY(-10px)',
-                    boxShadow: '0 40px 120px rgba(0, 0, 0, 0.8), 0 0 100px rgba(0, 212, 255, 0.5)',
+                    transform: 'translateY(-5px)',
+                    boxShadow: '0 25px 70px rgba(0, 0, 0, 0.7), 0 0 60px rgba(0, 212, 255, 0.3)',
                   },
                 },
                 '&::before': {
@@ -495,7 +485,7 @@ const Login = ({ onLogin }) => {
                   right: 0,
                   height: '4px',
                   background: 'linear-gradient(90deg, #00d4ff, #ff6b35, #00ff88, #00d4ff)',
-                  animation: 'shimmer 4s ease-in-out infinite',
+                  animation: 'shimmer 6s ease-in-out infinite',
                   '@keyframes shimmer': {
                     '0%': {
                       backgroundPosition: '-200% 0',
@@ -507,9 +497,9 @@ const Login = ({ onLogin }) => {
                   backgroundSize: '200% 100%',
                 },
                 '&:hover': {
-                  border: '3px solid rgba(0, 212, 255, 0.7)',
-                  boxShadow: '0 40px 120px rgba(0, 0, 0, 0.8), 0 0 100px rgba(0, 212, 255, 0.5)',
-                  transform: 'translateY(-5px) scale(1.02)',
+                  border: '3px solid rgba(0, 212, 255, 0.6)',
+                  boxShadow: '0 25px 70px rgba(0, 0, 0, 0.7), 0 0 60px rgba(0, 212, 255, 0.3)',
+                  transform: 'translateY(-3px) scale(1.01)',
                   transition: 'all 0.3s ease',
                 },
               }}
@@ -529,7 +519,7 @@ const Login = ({ onLogin }) => {
                     mb: { xs: 3, sm: 4 },
                     fontWeight: 700,
                     fontSize: { xs: '1.8rem', sm: '2rem', md: '2.5rem' },
-                    animation: 'fadeInUp 1s ease-out 0.3s both',
+                    animation: 'fadeInUp 0.8s ease-out 0.2s both',
                   }}
                 >
                   <Box component="span" sx={{ color: '#00d4ff' }}>
@@ -552,7 +542,7 @@ const Login = ({ onLogin }) => {
                     size="large"
                     sx={{
                       mb: { xs: 3, sm: 4 },
-                      animation: 'fadeInUp 1s ease-out 0.5s both',
+                      animation: 'fadeInUp 0.8s ease-out 0.4s both',
                       '& .MuiOutlinedInput-root': {
                         fontSize: { xs: '1.4rem', sm: '1.6rem', md: '1.8rem' },
                         height: { xs: 64, sm: 70, md: 80 },
@@ -601,7 +591,7 @@ const Login = ({ onLogin }) => {
                     size="large"
                     sx={{
                       mb: { xs: 3, sm: 4 },
-                      animation: 'fadeInUp 1s ease-out 0.7s both',
+                      animation: 'fadeInUp 0.8s ease-out 0.6s both',
                       '& .MuiOutlinedInput-root': {
                         fontSize: { xs: '1.4rem', sm: '1.6rem', md: '1.8rem' },
                         height: { xs: 64, sm: 70, md: 80 },
@@ -651,8 +641,8 @@ const Login = ({ onLogin }) => {
                         animation: 'shake 0.5s ease-in-out',
                         '@keyframes shake': {
                           '0%, 100%': { transform: 'translateX(0)' },
-                          '25%': { transform: 'translateX(-5px)' },
-                          '75%': { transform: 'translateX(5px)' },
+                          '25%': { transform: 'translateX(-3px)' },
+                          '75%': { transform: 'translateX(3px)' },
                         },
                         '& .MuiAlert-icon': {
                           color: '#ff4757',
@@ -696,24 +686,24 @@ const Login = ({ onLogin }) => {
                       fontWeight: 700,
                       background: 'linear-gradient(45deg, #00d4ff 0%, #0099cc 50%, #00d4ff 100%)',
                       borderRadius: 4,
-                      boxShadow: '0 15px 50px rgba(0, 212, 255, 0.5)',
+                      boxShadow: '0 10px 30px rgba(0, 212, 255, 0.4)',
                       border: '2px solid rgba(0, 212, 255, 0.4)',
                       textTransform: 'none',
                       letterSpacing: '0.02em',
-                      animation: 'fadeInUp 1s ease-out 0.9s both',
+                      animation: 'fadeInUp 0.8s ease-out 0.8s both',
                       transition: 'all 0.3s ease',
                       '&:hover': {
                         background: 'linear-gradient(45deg, #00e5ff 0%, #00b3e6 50%, #00e5ff 100%)',
-                        boxShadow: '0 20px 60px rgba(0, 212, 255, 0.7)',
-                        transform: 'translateY(-3px) scale(1.02)',
-                        border: '2px solid rgba(0, 212, 255, 0.7)',
+                        boxShadow: '0 15px 40px rgba(0, 212, 255, 0.6)',
+                        transform: 'translateY(-2px) scale(1.01)',
+                        border: '2px solid rgba(0, 212, 255, 0.6)',
                       },
                       '&:active': {
-                        transform: 'translateY(-1px) scale(0.98)',
+                        transform: 'translateY(-1px) scale(0.99)',
                       },
                       '&:disabled': {
                         background: 'linear-gradient(45deg, #666 0%, #999 50%, #666 100%)',
-                        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
+                        boxShadow: '0 5px 15px rgba(0, 0, 0, 0.3)',
                         transform: 'none',
                       },
                     }}
@@ -734,7 +724,7 @@ const Login = ({ onLogin }) => {
                     fontSize: { xs: '0.9rem', sm: '1rem', md: '1.2rem' },
                     fontWeight: 400,
                     color: '#a8b5c6',
-                    animation: 'fadeInUp 1s ease-out 1.1s both',
+                    animation: 'fadeInUp 0.8s ease-out 1s both',
                   }}
                 >
                   Advanced GNSS Trajectory Analysis & Kinematic Dynamics
