@@ -30,6 +30,7 @@ import {
   Height,
   Navigation,
   Info,
+  Map,
 } from '@mui/icons-material';
 import { MapContainer, TileLayer, Popup, Marker, ZoomControl, Polyline } from 'react-leaflet';
 import L from 'leaflet';
