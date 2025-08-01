@@ -269,15 +269,18 @@ const Dashboard = ({ onLogout }) => {
       </Box>
 
              {/* Main content */}
-       <Box
-         component="main"
-         sx={{
-           flexGrow: 1,
-           p: 1,
-           width: { sm: `calc(100% - ${drawerWidth}px)` },
-           pt: { xs: 8, sm: 1 },
-         }}
-       >
+                <Box
+           component="main"
+           sx={{
+             flexGrow: 1,
+             width: { sm: `calc(100% - ${drawerWidth}px)` },
+             pt: { xs: 8, sm: 2 },
+             pl: { sm: 2 },
+             pr: { sm: 2 },
+             maxWidth: 'none',
+             minWidth: 0,
+           }}
+         >
                  {/* Page Header with Logout */}
          <Box sx={{ mb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
            <Box>
@@ -311,9 +314,11 @@ const Dashboard = ({ onLogout }) => {
              borderRadius: 3,
              overflow: 'hidden',
              height: 'calc(100vh - 140px)',
+             width: '100%',
+             maxWidth: 'none',
            }}
          >
-           <Box sx={{ p: 1, height: '100%', overflow: 'auto' }}>
+           <Box sx={{ height: '100%', overflow: 'auto' }}>
              {tabConfig[activeTab].component}
            </Box>
          </Paper>

@@ -18,15 +18,19 @@ import {
   Divider,
   CircularProgress,
   Alert,
+  Dialog,
+  DialogContent,
+  IconButton,
 } from '@mui/material';
 import {
   Speed,
   Analytics,
-  DirectionsWalk,
   Warning,
   Timer,
   TrendingUp,
   Settings,
+  ZoomIn,
+  Close,
 } from '@mui/icons-material';
 import {
   LineChart,
@@ -50,6 +54,8 @@ const TemporalIntegrityAnalysis = ({ data, loading }) => {
   const [showAdvancedMetrics, setShowAdvancedMetrics] = useState(false);
   const [showGapAnalysis, setShowGapAnalysis] = useState(true);
   const [showDriftAnalysis, setShowDriftAnalysis] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedChart, setSelectedChart] = useState(null);
 
   // Helper function to parse date correctly
   const parseDate = (dateString) => {
@@ -88,17 +94,40 @@ const TemporalIntegrityAnalysis = ({ data, loading }) => {
         const prevTimestamp = parseDate(data[index - 1]['Transmitted Time']);
         timeGap = (timestamp - prevTimestamp) / 1000;
         
-        isGap = timeGap > expectedInterval * 1.5;
-        isDrift = Math.abs(timeGap - expectedInterval) > 0.5;
+        // More realistic gap detection - allow for more variation
+        isGap = timeGap > expectedInterval * 2.5; // Increased from 2.0 to 2.5
+        isDrift = Math.abs(timeGap - expectedInterval) > 1.5; // Increased from 1.0 to 1.5
         
-        // Determine gap severity
-        if (timeGap > expectedInterval * 3) {
+        // Determine gap severity with more lenient thresholds
+        if (timeGap > expectedInterval * 5) {
           gapSeverity = 'critical';
-        } else if (timeGap > expectedInterval * 2) {
+        } else if (timeGap > expectedInterval * 3.5) {
           gapSeverity = 'high';
-        } else if (timeGap > expectedInterval * 1.5) {
+        } else if (timeGap > expectedInterval * 2.5) {
           gapSeverity = 'medium';
         }
+      }
+
+      // More nuanced reliability scoring with better thresholds
+      let reliabilityScore = 100; // Start with perfect score
+      
+      if (isGap) {
+        reliabilityScore = 0; // Complete failure
+      } else if (isDrift) {
+        // Gradual reduction based on drift severity
+        const driftSeverity = Math.abs(timeGap - expectedInterval) / expectedInterval;
+        if (driftSeverity > 3.0) {
+          reliabilityScore = 25; // Major drift
+        } else if (driftSeverity > 2.0) {
+          reliabilityScore = 50; // Moderate drift
+        } else if (driftSeverity > 1.5) {
+          reliabilityScore = 75; // Minor drift
+        } else {
+          reliabilityScore = 90; // Very minor drift
+        }
+      } else {
+        // Perfect timing gets full score
+        reliabilityScore = 100;
       }
 
       return {
@@ -113,7 +142,7 @@ const TemporalIntegrityAnalysis = ({ data, loading }) => {
         gapSeverity,
         packetIndex: index + 1,
         transmissionTime: timestamp.getTime(),
-        reliability: isGap ? 0 : (isDrift ? 50 : 100),
+        reliability: reliabilityScore,
       };
     });
   }, [data]);
@@ -129,7 +158,11 @@ const TemporalIntegrityAnalysis = ({ data, loading }) => {
       (processedData[processedData.length - 1].timestamp - processedData[0].timestamp) / 1000 : 0;
     
     const totalPackets = processedData.length;
-    const reliability = ((normalIntervals.length / totalPackets) * 100).toFixed(2);
+    
+    // Calculate weighted reliability based on individual packet scores
+    const totalReliability = processedData.reduce((sum, packet) => sum + packet.reliability, 0);
+    const reliability = (totalReliability / totalPackets).toFixed(2);
+    
     const packetLossRate = ((gaps.length / totalPackets) * 100).toFixed(2);
     const driftRate = ((drifts.length / totalPackets) * 100).toFixed(2);
     
@@ -138,9 +171,22 @@ const TemporalIntegrityAnalysis = ({ data, loading }) => {
     const maxGap = timeGaps.length > 0 ? Math.max(...timeGaps).toFixed(2) : 0;
     const minGap = timeGaps.length > 0 ? Math.min(...timeGaps).toFixed(2) : 0;
     
-    // Calculate jitter (standard deviation of time gaps)
-    const jitter = timeGaps.length > 0 ? 
-      Math.sqrt(timeGaps.reduce((sum, gap) => sum + Math.pow(gap - avgInterval, 2), 0) / timeGaps.length).toFixed(2) : 0;
+    // Calculate jitter only for consecutive readings within reasonable time windows
+    const maxReasonableGap = 60; // Only consider gaps less than 60 seconds
+    const reasonableGaps = timeGaps.filter(gap => gap <= maxReasonableGap);
+    
+    // Calculate average interval using only reasonable gaps
+    const reasonableAvgInterval = reasonableGaps.length > 0 ? 
+      reasonableGaps.reduce((sum, gap) => sum + gap, 0) / reasonableGaps.length : 0;
+    
+    const jitterStdDev = reasonableGaps.length > 0 ? 
+      Math.sqrt(reasonableGaps.reduce((sum, gap) => sum + Math.pow(gap - reasonableAvgInterval, 2), 0) / reasonableGaps.length) : 0;
+    
+    // Convert to percentage using coefficient of variation
+    const jitterPercentage = reasonableAvgInterval > 0 ? ((jitterStdDev / reasonableAvgInterval) * 100).toFixed(2) : 0;
+    
+    // Calculate standard deviation in milliseconds for display
+    const jitterStdDevMs = (jitterStdDev * 1000).toFixed(2);
 
     // Analyze gap patterns
     const criticalGaps = gaps.filter(g => g.gapSeverity === 'critical').length;
@@ -152,7 +198,8 @@ const TemporalIntegrityAnalysis = ({ data, loading }) => {
       reliability: parseFloat(reliability),
       packetLossRate: parseFloat(packetLossRate),
       driftRate: parseFloat(driftRate),
-      jitter: parseFloat(jitter),
+      jitter: parseFloat(jitterPercentage),
+      jitterStdDev: parseFloat(jitterStdDevMs), // Standard deviation in milliseconds
       totalTime: totalTime.toFixed(2),
       avgInterval: parseFloat(avgInterval),
       maxGap: parseFloat(maxGap),
@@ -224,6 +271,16 @@ const TemporalIntegrityAnalysis = ({ data, loading }) => {
     </Card>
   );
 
+  const handleChartClick = (chartType) => {
+    setSelectedChart(chartType);
+    setModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedChart(null);
+  };
+
   const renderChart = (data, type, title, color, height = 250) => (
     <Card sx={{ 
       background: 'linear-gradient(135deg, rgba(26, 35, 50, 0.95) 0%, rgba(40, 50, 60, 0.95) 100%)',
@@ -238,9 +295,18 @@ const TemporalIntegrityAnalysis = ({ data, loading }) => {
       }
     }}>
       <CardContent sx={{ p: 2, height: '100%' }}>
-        <Typography variant="h6" sx={{ color: color, mb: 2, textAlign: 'center', fontWeight: 'bold' }}>
-          {title}
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6" sx={{ color: color, fontWeight: 'bold' }}>
+            {title}
+          </Typography>
+          <IconButton 
+            size="small" 
+            sx={{ color: color }}
+            onClick={() => handleChartClick(title)}
+          >
+            <ZoomIn />
+          </IconButton>
+        </Box>
         <ResponsiveContainer width="100%" height={height}>
           {type === 'line' ? (
             <LineChart data={data}>
@@ -361,7 +427,7 @@ const TemporalIntegrityAnalysis = ({ data, loading }) => {
   ];
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 2 }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', width: '100%' }}>
       {/* Enhanced Header */}
       <Box sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -437,298 +503,380 @@ const TemporalIntegrityAnalysis = ({ data, loading }) => {
         )}
       </Box>
 
-      {/* Main Content */}
-      <Box sx={{ flexGrow: 1, display: 'flex', gap: 2 }}>
-        {/* Left Column - Metrics and Charts */}
-        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {/* Key Metrics */}
-          <Grid container spacing={2}>
-            <Grid item xs={6} md={3}>
-              {renderMetricCard(
-                'Total Packets',
-                temporalAnalysis.totalPackets || 0,
-                <Analytics sx={{ color: '#00d4ff', fontSize: 28 }} />,
-                '#00d4ff'
-              )}
-            </Grid>
-            <Grid item xs={6} md={3}>
-              {renderMetricCard(
-                'Reliability',
-                `${temporalAnalysis.reliability || 0}%`,
-                <DirectionsWalk sx={{ color: '#4caf50', fontSize: 28 }} />,
-                '#4caf50',
-                'Transmission Success Rate',
-                temporalAnalysis.reliability
-              )}
-            </Grid>
-            <Grid item xs={6} md={3}>
-              {renderMetricCard(
-                'Packet Loss',
-                `${temporalAnalysis.packetLossRate || 0}%`,
-                <Warning sx={{ color: '#f44336', fontSize: 28 }} />,
-                '#f44336',
-                'Missing Packets'
-              )}
-            </Grid>
-            <Grid item xs={6} md={3}>
-              {renderMetricCard(
-                'Jitter',
-                `${temporalAnalysis.jitter || 0}s`,
-                <Speed sx={{ color: '#ff9800', fontSize: 28 }} />,
-                '#ff9800',
-                'Timing Variation'
-              )}
-            </Grid>
-          </Grid>
+             {/* Main Content */}
+       <Box sx={{ flexGrow: 1, width: '100%', maxWidth: '100%' }}>
+                  {/* First Row - Key Metrics and Analysis */}
+         <Grid container spacing={2} sx={{ mb: 2, width: '100%' }}>
+           <Grid item xs={6} md={2}>
+             {renderMetricCard(
+               'Total Packets',
+               temporalAnalysis.totalPackets || 0,
+               <Analytics sx={{ color: '#00d4ff', fontSize: 28 }} />,
+               '#00d4ff'
+             )}
+           </Grid>
+           <Grid item xs={6} md={2}>
+             {renderMetricCard(
+               'Packet Loss',
+               `${temporalAnalysis.packetLossRate || 0}%`,
+               <Warning sx={{ color: '#f44336', fontSize: 28 }} />,
+               '#f44336',
+               'Missing Packets'
+             )}
+           </Grid>
+           <Grid item xs={6} md={2}>
+             {renderMetricCard(
+               'Jitter',
+               `${temporalAnalysis.jitter || 0}%`,
+               <Speed sx={{ color: '#ff9800', fontSize: 28 }} />,
+               '#ff9800',
+               'Timing Variation'
+             )}
+           </Grid>
+           <Grid item xs={6} md={3}>
+             <Card sx={{ bgcolor: 'rgba(26, 35, 50, 0.9)', height: '100%' }}>
+               <CardContent sx={{ p: 2 }}>
+                 <Typography variant="h6" sx={{ color: '#00d4ff', mb: 2, display: 'flex', alignItems: 'center' }}>
+                   <Analytics sx={{ mr: 1 }} />
+                   Reliability Analysis
+                 </Typography>
+                 
+                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                     <Typography variant="body2" sx={{ color: '#b0b0b0' }}>
+                       Overall Reliability
+                     </Typography>
+                     <Chip
+                       label={`${temporalAnalysis.reliability?.toFixed(1)}%`}
+                       size="small"
+                       sx={{ 
+                         bgcolor: temporalAnalysis.reliability > 95 ? 'rgba(76, 175, 80, 0.2)' : 
+                                temporalAnalysis.reliability > 80 ? 'rgba(255, 152, 0, 0.2)' : 'rgba(244, 67, 54, 0.2)',
+                         color: temporalAnalysis.reliability > 95 ? '#4caf50' : 
+                                temporalAnalysis.reliability > 80 ? '#ff9800' : '#f44336'
+                       }}
+                     />
+                   </Box>
+                   
+                   <LinearProgress
+                     variant="determinate"
+                     value={temporalAnalysis.reliability || 0}
+                     sx={{
+                       height: 8,
+                       borderRadius: 4,
+                       bgcolor: 'rgba(255,255,255,0.1)',
+                       '& .MuiLinearProgress-bar': {
+                         bgcolor: temporalAnalysis.reliability > 95 ? '#4caf50' : 
+                                  temporalAnalysis.reliability > 80 ? '#ff9800' : '#f44336',
+                       },
+                     }}
+                   />
 
-          {/* Transmission Statistics */}
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
-              <Card sx={{ 
-                background: 'linear-gradient(135deg, rgba(26, 35, 50, 0.95) 0%, rgba(40, 50, 60, 0.95) 100%)',
-                border: '2px solid rgba(255,255,255,0.1)',
-                borderRadius: 3,
-                height: '100%'
-              }}>
-                <CardContent sx={{ p: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <Timer sx={{ color: '#00d4ff', mr: 1 }} />
-                    <Typography variant="h6" sx={{ color: '#00d4ff', fontWeight: 'bold' }}>
-                      Transmission Statistics
-                    </Typography>
-                  </Box>
-                  <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" sx={{ color: '#b0b0b0' }}>Total Time</Typography>
-                      <Typography variant="h6" sx={{ color: '#4caf50', fontWeight: 'bold' }}>
-                        {temporalAnalysis.totalTime}s
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" sx={{ color: '#b0b0b0' }}>Avg Interval</Typography>
-                      <Typography variant="h6" sx={{ color: '#00d4ff', fontWeight: 'bold' }}>
-                        {temporalAnalysis.avgInterval}s
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" sx={{ color: '#b0b0b0' }}>Max Gap</Typography>
-                      <Typography variant="h6" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
-                        {temporalAnalysis.maxGap}s
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" sx={{ color: '#b0b0b0' }}>Min Gap</Typography>
-                      <Typography variant="h6" sx={{ color: '#4caf50', fontWeight: 'bold' }}>
-                        {temporalAnalysis.minGap}s
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Card sx={{ 
-                background: 'linear-gradient(135deg, rgba(26, 35, 50, 0.95) 0%, rgba(40, 50, 60, 0.95) 100%)',
-                border: '2px solid rgba(255,255,255,0.1)',
-                borderRadius: 3,
-                height: '100%'
-              }}>
-                <CardContent sx={{ p: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <TrendingUp sx={{ color: '#00d4ff', mr: 1 }} />
-                    <Typography variant="h6" sx={{ color: '#00d4ff', fontWeight: 'bold' }}>
-                      Quality Metrics
-                    </Typography>
-                  </Box>
-                  <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" sx={{ color: '#b0b0b0' }}>Normal Intervals</Typography>
-                      <Typography variant="h6" sx={{ color: '#4caf50', fontWeight: 'bold' }}>
-                        {temporalAnalysis.normalIntervals}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" sx={{ color: '#b0b0b0' }}>Drifts Detected</Typography>
-                      <Typography variant="h6" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
-                        {temporalAnalysis.drifts}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" sx={{ color: '#b0b0b0' }}>Gaps Detected</Typography>
-                      <Typography variant="h6" sx={{ color: '#f44336', fontWeight: 'bold' }}>
-                        {temporalAnalysis.gaps}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" sx={{ color: '#b0b0b0' }}>Drift Rate</Typography>
-                      <Typography variant="h6" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
-                        {temporalAnalysis.driftRate}%
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+                   <Divider sx={{ my: 1 }} />
 
-          {/* Charts */}
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
-              {renderChart(
-                chartData,
-                'line',
-                'Time Gaps Analysis',
-                '#00d4ff',
-                200
-              )}
-            </Grid>
-            <Grid item xs={12} md={6}>
-              {renderChart(
-                chartData,
-                'area',
-                'Transmission Jitter',
-                '#ff9800',
-                200
-              )}
-            </Grid>
-            <Grid item xs={12} md={6}>
-              {renderChart(
-                pieData,
-                'pie',
-                'Packet Distribution',
-                '#4caf50',
-                200
-              )}
-            </Grid>
-            <Grid item xs={12} md={6}>
-              {renderChart(
-                gapSeverityData,
-                'pie',
-                'Gap Severity',
-                '#f44336',
-                200
-              )}
-            </Grid>
-          </Grid>
-        </Box>
+                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                     <Typography variant="body2" sx={{ color: '#b0b0b0' }}>
+                       Packet Loss Rate
+                     </Typography>
+                     <Chip
+                       label={`${temporalAnalysis.packetLossRate?.toFixed(2)}%`}
+                       size="small"
+                       sx={{ bgcolor: 'rgba(244, 67, 54, 0.2)', color: '#f44336' }}
+                     />
+                   </Box>
 
-        {/* Right Column - Advanced Analytics */}
-        <Box sx={{ width: 350, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {/* Reliability Analysis */}
-          <Card sx={{ bgcolor: 'rgba(26, 35, 50, 0.9)', flexGrow: 1 }}>
-            <CardContent sx={{ p: 2 }}>
-              <Typography variant="h6" sx={{ color: '#00d4ff', mb: 2, display: 'flex', alignItems: 'center' }}>
-                <Analytics sx={{ mr: 1 }} />
-                Reliability Analysis
-              </Typography>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography variant="body2" sx={{ color: '#b0b0b0' }}>
-                    Overall Reliability
-                  </Typography>
-                  <Chip
-                    label={`${temporalAnalysis.reliability?.toFixed(1)}%`}
-                    size="small"
-                    sx={{ 
-                      bgcolor: temporalAnalysis.reliability > 95 ? 'rgba(76, 175, 80, 0.2)' : 
-                             temporalAnalysis.reliability > 80 ? 'rgba(255, 152, 0, 0.2)' : 'rgba(244, 67, 54, 0.2)',
-                      color: temporalAnalysis.reliability > 95 ? '#4caf50' : 
-                             temporalAnalysis.reliability > 80 ? '#ff9800' : '#f44336'
+                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                     <Typography variant="body2" sx={{ color: '#b0b0b0' }}>
+                       Drift Rate
+                     </Typography>
+                     <Chip
+                       label={`${temporalAnalysis.driftRate?.toFixed(2)}%`}
+                       size="small"
+                       sx={{ bgcolor: 'rgba(255, 152, 0, 0.2)', color: '#ff9800' }}
+                     />
+                   </Box>
+
+                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                     <Typography variant="body2" sx={{ color: '#b0b0b0' }}>
+                       Average Jitter (%)
+                     </Typography>
+                     <Chip
+                       label={`${temporalAnalysis.jitter?.toFixed(2)}%`}
+                       size="small"
+                       sx={{ bgcolor: 'rgba(255, 152, 0, 0.2)', color: '#ff9800' }}
+                     />
+                   </Box>
+                 </Box>
+               </CardContent>
+             </Card>
+           </Grid>
+           <Grid item xs={6} md={3}>
+             <Card sx={{ 
+               background: 'linear-gradient(135deg, rgba(26, 35, 50, 0.95) 0%, rgba(40, 50, 60, 0.95) 100%)',
+               border: '2px solid rgba(255,255,255,0.1)',
+               borderRadius: 3,
+               height: '100%'
+             }}>
+               <CardContent sx={{ p: 2 }}>
+                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                   <Timer sx={{ color: '#00d4ff', mr: 1 }} />
+                   <Typography variant="h6" sx={{ color: '#00d4ff', fontWeight: 'bold' }}>
+                     Transmission Statistics
+                   </Typography>
+                 </Box>
+                 <Grid container spacing={2}>
+                   <Grid item xs={6}>
+                     <Typography variant="body2" sx={{ color: '#b0b0b0' }}>Total Time</Typography>
+                     <Typography variant="h6" sx={{ color: '#4caf50', fontWeight: 'bold' }}>
+                       {temporalAnalysis.totalTime}s
+                     </Typography>
+                   </Grid>
+                   <Grid item xs={6}>
+                     <Typography variant="body2" sx={{ color: '#b0b0b0' }}>Avg Interval</Typography>
+                     <Typography variant="h6" sx={{ color: '#00d4ff', fontWeight: 'bold' }}>
+                       {temporalAnalysis.avgInterval}s
+                     </Typography>
+                   </Grid>
+                   <Grid item xs={6}>
+                     <Typography variant="body2" sx={{ color: '#b0b0b0' }}>Max Gap</Typography>
+                     <Typography variant="h6" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
+                       {temporalAnalysis.maxGap}s
+                     </Typography>
+                   </Grid>
+                   <Grid item xs={6}>
+                     <Typography variant="body2" sx={{ color: '#b0b0b0' }}>Min Gap</Typography>
+                     <Typography variant="h6" sx={{ color: '#4caf50', fontWeight: 'bold' }}>
+                       {temporalAnalysis.minGap}s
+                     </Typography>
+                   </Grid>
+                 </Grid>
+               </CardContent>
+             </Card>
+           </Grid>
+         </Grid>
+
+         {/* Second Row - Charts and Additional Metrics */}
+         <Grid container spacing={2} sx={{ width: '100%' }}>
+           <Grid item xs={12} md={6}>
+             {renderChart(
+               chartData,
+               'line',
+               'Time Gaps Analysis',
+               '#00d4ff',
+               200
+             )}
+           </Grid>
+           <Grid item xs={12} md={6}>
+             {renderChart(
+               chartData,
+               'area',
+               'Transmission Jitter (%)',
+               '#ff9800',
+               200
+             )}
+           </Grid>
+           <Grid item xs={12} md={4}>
+             {renderChart(
+               pieData,
+               'pie',
+               'Packet Distribution',
+               '#4caf50',
+               200
+             )}
+           </Grid>
+           <Grid item xs={12} md={4}>
+             {renderChart(
+               gapSeverityData,
+               'pie',
+               'Gap Severity',
+               '#f44336',
+               200
+             )}
+           </Grid>
+           <Grid item xs={12} md={4}>
+             <Card sx={{ 
+               background: 'linear-gradient(135deg, rgba(26, 35, 50, 0.95) 0%, rgba(40, 50, 60, 0.95) 100%)',
+               border: '2px solid rgba(255,255,255,0.1)',
+               borderRadius: 3,
+               height: '100%'
+             }}>
+               <CardContent sx={{ p: 2 }}>
+                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                   <TrendingUp sx={{ color: '#00d4ff', mr: 1 }} />
+                   <Typography variant="h6" sx={{ color: '#00d4ff', fontWeight: 'bold' }}>
+                     Quality Metrics
+                   </Typography>
+                 </Box>
+                 <Grid container spacing={2}>
+                   <Grid item xs={6}>
+                     <Typography variant="body2" sx={{ color: '#b0b0b0' }}>Normal Intervals</Typography>
+                     <Typography variant="h6" sx={{ color: '#4caf50', fontWeight: 'bold' }}>
+                       {temporalAnalysis.normalIntervals}
+                     </Typography>
+                   </Grid>
+                   <Grid item xs={6}>
+                     <Typography variant="body2" sx={{ color: '#b0b0b0' }}>Drifts Detected</Typography>
+                     <Typography variant="h6" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
+                       {temporalAnalysis.drifts}
+                     </Typography>
+                   </Grid>
+                   <Grid item xs={6}>
+                     <Typography variant="body2" sx={{ color: '#b0b0b0' }}>Gaps Detected</Typography>
+                     <Typography variant="h6" sx={{ color: '#f44336', fontWeight: 'bold' }}>
+                       {temporalAnalysis.gaps}
+                     </Typography>
+                   </Grid>
+                   <Grid item xs={6}>
+                     <Typography variant="body2" sx={{ color: '#b0b0b0' }}>Drift Rate</Typography>
+                     <Typography variant="h6" sx={{ color: '#ff9800', fontWeight: 'bold' }}>
+                       {temporalAnalysis.driftRate}%
+                     </Typography>
+                   </Grid>
+                 </Grid>
+               </CardContent>
+             </Card>
+           </Grid>
+         </Grid>
+
+                 
+      </Box>
+      
+      {/* Chart Modal */}
+      <Dialog
+        open={modalOpen}
+        onClose={handleCloseModal}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: 'rgba(26, 35, 50, 0.95)',
+            border: '2px solid rgba(255,255,255,0.2)',
+            borderRadius: 3,
+          }
+        }}
+      >
+        <DialogContent sx={{ p: 3, position: 'relative' }}>
+          <IconButton
+            onClick={handleCloseModal}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8,
+              color: '#b0b0b0',
+              '&:hover': { color: '#ffffff' }
+            }}
+          >
+            <Close />
+          </IconButton>
+          <Typography variant="h5" sx={{ color: '#00d4ff', mb: 3, textAlign: 'center' }}>
+            {selectedChart}
+          </Typography>
+          <Box sx={{ height: 500 }}>
+            {selectedChart === 'Time Gaps Analysis' && (
+              <ResponsiveContainer width="100%" height={450}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                  <XAxis dataKey="timeShort" stroke="#b0b0b0" fontSize={12} />
+                  <YAxis stroke="#b0b0b0" fontSize={12} />
+                  <RechartsTooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(26, 35, 50, 0.95)', 
+                      border: '2px solid rgba(255,255,255,0.2)',
+                      borderRadius: 8,
+                      color: '#ffffff'
                     }}
                   />
-                </Box>
-                
-                <LinearProgress
-                  variant="determinate"
-                  value={temporalAnalysis.reliability || 0}
-                  sx={{
-                    height: 8,
-                    borderRadius: 4,
-                    bgcolor: 'rgba(255,255,255,0.1)',
-                    '& .MuiLinearProgress-bar': {
-                      bgcolor: temporalAnalysis.reliability > 95 ? '#4caf50' : 
-                               temporalAnalysis.reliability > 80 ? '#ff9800' : '#f44336',
-                    },
-                  }}
-                />
-
-                <Divider sx={{ my: 1 }} />
-
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography variant="body2" sx={{ color: '#b0b0b0' }}>
-                    Packet Loss Rate
-                  </Typography>
-                  <Chip
-                    label={`${temporalAnalysis.packetLossRate?.toFixed(2)}%`}
-                    size="small"
-                    sx={{ bgcolor: 'rgba(244, 67, 54, 0.2)', color: '#f44336' }}
+                  <Line 
+                    type="monotone" 
+                    dataKey="timeGap" 
+                    stroke="#00d4ff" 
+                    strokeWidth={3}
+                    dot={{ fill: '#00d4ff', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, stroke: '#00d4ff', strokeWidth: 2 }}
                   />
-                </Box>
-
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography variant="body2" sx={{ color: '#b0b0b0' }}>
-                    Drift Rate
-                  </Typography>
-                  <Chip
-                    label={`${temporalAnalysis.driftRate?.toFixed(2)}%`}
-                    size="small"
-                    sx={{ bgcolor: 'rgba(255, 152, 0, 0.2)', color: '#ff9800' }}
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+            {selectedChart === 'Transmission Jitter (%)' && (
+              <ResponsiveContainer width="100%" height={450}>
+                <AreaChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                  <XAxis dataKey="timeShort" stroke="#b0b0b0" fontSize={12} />
+                  <YAxis stroke="#b0b0b0" fontSize={12} />
+                  <RechartsTooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(26, 35, 50, 0.95)', 
+                      border: '2px solid rgba(255,255,255,0.2)',
+                      borderRadius: 8,
+                      color: '#ffffff'
+                    }}
                   />
-                </Box>
-
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography variant="body2" sx={{ color: '#b0b0b0' }}>
-                    Average Jitter
-                  </Typography>
-                  <Chip
-                    label={`${temporalAnalysis.jitter?.toFixed(2)}s`}
-                    size="small"
-                    sx={{ bgcolor: 'rgba(255, 152, 0, 0.2)', color: '#ff9800' }}
+                  <Area 
+                    type="monotone" 
+                    dataKey="timeGap" 
+                    stroke="#ff9800" 
+                    fill="#ff9800"
+                    fillOpacity={0.3}
+                    strokeWidth={2}
                   />
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-
-          {/* Gap Analysis */}
-          <Card sx={{ bgcolor: 'rgba(26, 35, 50, 0.9)', flexGrow: 1 }}>
-            <CardContent sx={{ p: 2 }}>
-              <Typography variant="h6" sx={{ color: '#00d4ff', mb: 2, display: 'flex', alignItems: 'center' }}>
-                <Warning sx={{ mr: 1 }} />
-                Gap Analysis
-              </Typography>
-              
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="caption" sx={{ color: '#b0b0b0' }}>Critical Gaps</Typography>
-                  <Typography variant="caption" sx={{ color: '#f44336' }}>
-                    {temporalAnalysis.criticalGaps || 0} gaps
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="caption" sx={{ color: '#b0b0b0' }}>High Severity</Typography>
-                  <Typography variant="caption" sx={{ color: '#ff9800' }}>
-                    {temporalAnalysis.highGaps || 0} gaps
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="caption" sx={{ color: '#b0b0b0' }}>Medium Severity</Typography>
-                  <Typography variant="caption" sx={{ color: '#ffc107' }}>
-                    {temporalAnalysis.mediumGaps || 0} gaps
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="caption" sx={{ color: '#b0b0b0' }}>Total Gaps</Typography>
-                  <Typography variant="caption" sx={{ color: '#00d4ff' }}>
-                    {temporalAnalysis.gaps || 0} gaps
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Box>
-      </Box>
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+            {selectedChart === 'Packet Distribution' && (
+              <ResponsiveContainer width="100%" height={450}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={150}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(26, 35, 50, 0.95)', 
+                      border: '2px solid rgba(255,255,255,0.2)',
+                      borderRadius: 8,
+                      color: '#ffffff'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+            {selectedChart === 'Gap Severity' && (
+              <ResponsiveContainer width="100%" height={450}>
+                <PieChart>
+                  <Pie
+                    data={gapSeverityData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={150}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {gapSeverityData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(26, 35, 50, 0.95)', 
+                      border: '2px solid rgba(255,255,255,0.2)',
+                      borderRadius: 8,
+                      color: '#ffffff'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };

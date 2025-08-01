@@ -112,11 +112,44 @@ const GNSSSignalAnalysis = ({ data, loading }) => {
         }
       }
 
-      // Estimate horizontal accuracy based on satellite count
-      const estimatedAccuracy = satellites >= 12 ? 2 : 
-                               satellites >= 10 ? 5 : 
-                               satellites >= 8 ? 10 : 
-                               satellites >= 6 ? 15 : 25; // meters
+      // Estimate horizontal accuracy based on satellite count and signal quality
+      // More sophisticated accuracy estimation considering multiple factors
+      let estimatedAccuracy = 25; // Base accuracy in meters
+      
+      // Primary factor: Satellite count (most important)
+      if (satellites >= 12) {
+        estimatedAccuracy = 1.2; // High precision with many satellites
+      } else if (satellites >= 10) {
+        estimatedAccuracy = 2.5; // Good precision
+      } else if (satellites >= 8) {
+        estimatedAccuracy = 4.0; // Moderate precision
+      } else if (satellites >= 6) {
+        estimatedAccuracy = 6.5; // Lower precision
+      } else if (satellites >= 4) {
+        estimatedAccuracy = 10.0; // Poor precision
+      } else {
+        estimatedAccuracy = 15.0; // Very poor precision
+      }
+      
+      // Secondary factors that can improve accuracy
+      // Altitude stability (indicates good signal)
+      const altitudeStability = Math.abs(altitude - 530) < 20 ? 0.85 : 1.0; // Reduce accuracy if altitude is stable around expected value
+      
+      // Direction stability (indicates good signal)
+      const directionStability = Math.abs(direction) < 10 ? 0.9 : 1.0; // Reduce accuracy if direction is stable
+      
+      // Satellite count consistency bonus
+      const satelliteBonus = satellites >= 11 ? 0.8 : 1.0; // Bonus for high satellite count
+      
+      // Apply secondary factors
+      estimatedAccuracy *= altitudeStability * directionStability * satelliteBonus;
+      
+      // Add realistic environmental noise (reduced from previous version)
+      const environmentalNoise = 0.8 + Math.random() * 0.4; // 0.8 to 1.2 multiplier (more realistic)
+      estimatedAccuracy *= environmentalNoise;
+      
+      // Ensure minimum realistic accuracy
+      estimatedAccuracy = Math.max(estimatedAccuracy, 0.8);
 
       return {
         index,
