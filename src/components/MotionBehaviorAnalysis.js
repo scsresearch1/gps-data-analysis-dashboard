@@ -51,11 +51,13 @@ const MotionBehaviorAnalysis = ({ data, loading }) => {
   // Helper function to parse date correctly
   const parseDate = (dateString) => {
     try {
+      // Handle format: "29-07-2025 6.06" (DD-MM-YYYY HH.MM)
       const [datePart, timePart] = dateString.split(' ');
-      const [day, month, year] = datePart.split('/');
-      const [hour, minute, second] = timePart.split(':');
+      const [day, month, year] = datePart.split('-');
+      const [hour, minute] = timePart.split('.');
       
-      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), parseInt(second));
+      // Create date with seconds set to 0 since CSV doesn't include seconds
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute), 0);
       
       if (isNaN(date.getTime())) {
         console.error('Invalid date:', dateString);

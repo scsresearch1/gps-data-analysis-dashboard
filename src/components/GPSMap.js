@@ -71,7 +71,7 @@ const GPSMap = ({ data, loading }) => {
   const [showTrajectory, setShowTrajectory] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(false);
 
-  // Memoized helper function to parse DD/MM/YYYY HH:mm:ss format
+  // Memoized helper function to parse DD-MM-YYYY HH.MM format
   const parseDate = useCallback((dateStr) => {
     try {
       const parts = dateStr.split(' ');
@@ -80,7 +80,7 @@ const GPSMap = ({ data, loading }) => {
       const datePart = parts[0];
       const timePart = parts[1];
       
-      const dateComponents = datePart.split('/');
+      const dateComponents = datePart.split('-');
       if (dateComponents.length !== 3) return null;
       
       const day = parseInt(dateComponents[0]);
@@ -91,14 +91,14 @@ const GPSMap = ({ data, loading }) => {
         year += 2000;
       }
       
-      const timeComponents = timePart.split(':');
-      if (timeComponents.length !== 3) return null;
+      const timeComponents = timePart.split('.');
+      if (timeComponents.length !== 2) return null;
       
       const hour = parseInt(timeComponents[0]);
       const minute = parseInt(timeComponents[1]);
-      const second = parseInt(timeComponents[2]);
       
-      return new Date(year, month, day, hour, minute, second);
+      // Set seconds to 0 since CSV doesn't include seconds
+      return new Date(year, month, day, hour, minute, 0);
     } catch (error) {
       console.error('parseDate error:', error);
       return null;
@@ -270,7 +270,17 @@ const GPSMap = ({ data, loading }) => {
 
   // Memoized advanced statistics
   const advancedStats = useMemo(() => {
-    if (!processedData.points.length) return {};
+    if (!processedData.points.length) {
+      return {
+        avgSpeed: 0,
+        maxSpeed: 0,
+        avgAltitude: 0,
+        avgSatellites: 0,
+        totalPoints: 0,
+        totalDistance: 0,
+        dateCount: 0,
+      };
+    }
     
     const speeds = processedData.points.map(p => p.speed).filter(s => s > 0);
     const altitudes = processedData.points.map(p => p.altitude).filter(a => a > 0);
@@ -401,21 +411,21 @@ const GPSMap = ({ data, loading }) => {
               />
               <Chip
                 icon={<Timeline />}
-                label={`${processedData.totalDistance.toFixed(2)} km Total`}
+                label={`${(processedData.totalDistance || 0).toFixed(2)} km Total`}
                 color="success"
                 size="small"
                 sx={{ fontWeight: 'bold' }}
               />
               <Chip
                 icon={<Speed />}
-                label={`${advancedStats.avgSpeed.toFixed(1)} km/h Avg`}
+                label={`${(advancedStats.avgSpeed || 0).toFixed(1)} km/h Avg`}
                 color="warning"
                 size="small"
                 sx={{ fontWeight: 'bold' }}
               />
               <Chip
                 icon={<Satellite />}
-                label={`${advancedStats.avgSatellites.toFixed(0)} Sats Avg`}
+                label={`${(advancedStats.avgSatellites || 0).toFixed(0)} Sats Avg`}
                 color="info"
                 size="small"
                 sx={{ fontWeight: 'bold' }}
@@ -542,7 +552,7 @@ const GPSMap = ({ data, loading }) => {
                                     Speed
                                   </Typography>
                                   <Typography variant="body2">
-                                    {point.speed.toFixed(1)} km/h
+                                    {(point.speed || 0).toFixed(1)} km/h
                                   </Typography>
                                 </Box>
                                 <Box>
@@ -551,7 +561,7 @@ const GPSMap = ({ data, loading }) => {
                                     Coordinates
                                   </Typography>
                                   <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
-                                    {point.lat.toFixed(6)}, {point.lng.toFixed(6)}
+                                    {(point.lat || 0).toFixed(6)}, {(point.lng || 0).toFixed(6)}
                                   </Typography>
                                 </Box>
                                 <Box>
@@ -560,7 +570,7 @@ const GPSMap = ({ data, loading }) => {
                                     Altitude
                                   </Typography>
                                   <Typography variant="body2">
-                                    {point.altitude.toFixed(1)} m
+                                    {(point.altitude || 0).toFixed(1)} m
                                   </Typography>
                                 </Box>
                                 <Box>
@@ -569,7 +579,7 @@ const GPSMap = ({ data, loading }) => {
                                     Direction
                                   </Typography>
                                   <Typography variant="body2">
-                                    {point.direction.toFixed(1)}°
+                                    {(point.direction || 0).toFixed(1)}°
                                   </Typography>
                                 </Box>
                                 <Box>
@@ -585,7 +595,7 @@ const GPSMap = ({ data, loading }) => {
                               {point.distanceFromPrevious > 0 && (
                                 <Box sx={{ mt: 1, pt: 1, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
                                   <Typography variant="caption" sx={{ color: '#00ff88' }}>
-                                    Distance from previous: {(point.distanceFromPrevious * 1000).toFixed(1)} m
+                                    Distance from previous: {((point.distanceFromPrevious || 0) * 1000).toFixed(1)} m
                                   </Typography>
                                 </Box>
                               )}
@@ -625,7 +635,7 @@ const GPSMap = ({ data, loading }) => {
                 <Grid item xs={6}>
                   <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'rgba(255, 107, 53, 0.1)', borderRadius: 1 }}>
                     <Typography variant="h6" sx={{ color: '#ff6b35', fontWeight: 'bold' }}>
-                      {advancedStats.totalDistance.toFixed(1)}
+                      {(advancedStats.totalDistance || 0).toFixed(1)}
                     </Typography>
                     <Typography variant="caption" sx={{ color: '#b0b0b0' }}>
                       Total Distance (km)
@@ -635,7 +645,7 @@ const GPSMap = ({ data, loading }) => {
                 <Grid item xs={6}>
                   <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'rgba(0, 255, 136, 0.1)', borderRadius: 1 }}>
                     <Typography variant="h6" sx={{ color: '#00ff88', fontWeight: 'bold' }}>
-                      {advancedStats.avgSpeed.toFixed(1)}
+                      {(advancedStats.avgSpeed || 0).toFixed(1)}
                     </Typography>
                     <Typography variant="caption" sx={{ color: '#b0b0b0' }}>
                       Avg Speed (km/h)
@@ -645,7 +655,7 @@ const GPSMap = ({ data, loading }) => {
                 <Grid item xs={6}>
                   <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'rgba(255, 170, 0, 0.1)', borderRadius: 1 }}>
                     <Typography variant="h6" sx={{ color: '#ffaa00', fontWeight: 'bold' }}>
-                      {advancedStats.maxSpeed.toFixed(1)}
+                      {(advancedStats.maxSpeed || 0).toFixed(1)}
                     </Typography>
                     <Typography variant="caption" sx={{ color: '#b0b0b0' }}>
                       Max Speed (km/h)
@@ -702,10 +712,10 @@ const GPSMap = ({ data, loading }) => {
                     
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography variant="body2" sx={{ color: '#b0b0b0' }}>
-                        Distance: {summary.totalDistance.toFixed(2)} km
+                        Distance: {(summary.totalDistance || 0).toFixed(2)} km
                       </Typography>
                       <Typography variant="body2" sx={{ color: '#b0b0b0' }}>
-                        Avg: {summary.avgSpeed.toFixed(1)} km/h
+                        Avg: {(summary.avgSpeed || 0).toFixed(1)} km/h
                       </Typography>
                     </Box>
                     
