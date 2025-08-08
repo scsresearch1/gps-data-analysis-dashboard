@@ -18,6 +18,9 @@ import {
   Divider,
   CircularProgress,
   Alert,
+  Slider,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import {
   Speed,
@@ -31,6 +34,8 @@ import {
   Navigation,
   Info,
   Map,
+  ZoomIn,
+  ZoomOut,
 } from '@mui/icons-material';
 import { MapContainer, TileLayer, Popup, Marker, ZoomControl, Polyline } from 'react-leaflet';
 import L from 'leaflet';
@@ -65,7 +70,7 @@ const createCustomIcon = (color = '#00d4ff') => {
 const GPSMap = ({ data, loading }) => {
   const [selectedDate, setSelectedDate] = useState('all');
   const [mapCenter] = useState([17.726, 78.256]);
-  const [mapZoom] = useState(13);
+  const [mapZoom, setMapZoom] = useState(16); // Increased default zoom
   const [mapRef, setMapRef] = useState(null);
   const [showMarkers, setShowMarkers] = useState(true);
   const [showTrajectory, setShowTrajectory] = useState(true);
@@ -311,6 +316,14 @@ const GPSMap = ({ data, loading }) => {
     // Marker click handler - currently empty to avoid unused variable warnings
   }, []);
 
+  // Handle zoom level changes
+  const handleZoomChange = useCallback(() => {
+    if (mapRef) {
+      const currentZoom = mapRef.getZoom();
+      setMapZoom(currentZoom);
+    }
+  }, [mapRef]);
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -344,32 +357,105 @@ const GPSMap = ({ data, loading }) => {
             </Typography>
           </Box>
           
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant="outlined"
-              size="small"
-              sx={{ 
-                borderColor: '#00d4ff', 
-                color: '#00d4ff',
-                '&:hover': { borderColor: '#00e5ff', backgroundColor: 'rgba(0, 212, 255, 0.1)' }
-              }}
-            >
-              Animation Disabled
-            </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<CenterFocusStrong />}
-              onClick={() => mapRef?.setView(mapCenter, mapZoom)}
-              sx={{ 
-                borderColor: '#ff6b35', 
-                color: '#ff6b35',
-                '&:hover': { borderColor: '#ff8a65', backgroundColor: 'rgba(255, 107, 53, 0.1)' }
-              }}
-            >
-              Reset View
-            </Button>
-          </Box>
+                     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+             <Button
+               variant="outlined"
+               size="small"
+               onClick={() => mapRef?.zoomIn()}
+               sx={{ 
+                 borderColor: '#00d4ff', 
+                 color: '#00d4ff',
+                 '&:hover': { borderColor: '#00e5ff', backgroundColor: 'rgba(0, 212, 255, 0.1)' }
+               }}
+             >
+               Zoom In
+             </Button>
+             <Button
+               variant="outlined"
+               size="small"
+               onClick={() => mapRef?.zoomOut()}
+               sx={{ 
+                 borderColor: '#00d4ff', 
+                 color: '#00d4ff',
+                 '&:hover': { borderColor: '#00e5ff', backgroundColor: 'rgba(0, 212, 255, 0.1)' }
+               }}
+             >
+               Zoom Out
+             </Button>
+             <Button
+               variant="outlined"
+               size="small"
+               onClick={() => mapRef?.setZoom(12)}
+               sx={{ 
+                 borderColor: '#00ff88', 
+                 color: '#00ff88',
+                 '&:hover': { borderColor: '#00ffaa', backgroundColor: 'rgba(0, 255, 136, 0.1)' }
+               }}
+             >
+               Street Level
+             </Button>
+             <Button
+               variant="outlined"
+               size="small"
+               onClick={() => mapRef?.setZoom(16)}
+               sx={{ 
+                 borderColor: '#ffaa00', 
+                 color: '#ffaa00',
+                 '&:hover': { borderColor: '#ffcc00', backgroundColor: 'rgba(255, 170, 0, 0.1)' }
+               }}
+             >
+               Building Level
+             </Button>
+                           <Button
+                variant="outlined"
+                size="small"
+                onClick={() => mapRef?.setZoom(18)}
+                sx={{ 
+                  borderColor: '#ff4757', 
+                  color: '#ff4757',
+                  '&:hover': { borderColor: '#ff6b7a', backgroundColor: 'rgba(255, 71, 87, 0.1)' }
+                }}
+              >
+                Max Detail
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => mapRef?.setZoom(20)}
+                sx={{ 
+                  borderColor: '#9c27b0', 
+                  color: '#9c27b0',
+                  '&:hover': { borderColor: '#ba68c8', backgroundColor: 'rgba(156, 39, 176, 0.1)' }
+                }}
+              >
+                Ultra Detail
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => mapRef?.setZoom(22)}
+                sx={{ 
+                  borderColor: '#e91e63', 
+                  color: '#e91e63',
+                  '&:hover': { borderColor: '#f06292', backgroundColor: 'rgba(233, 30, 99, 0.1)' }
+                }}
+              >
+                Maximum Zoom
+              </Button>
+             <Button
+               variant="outlined"
+               size="small"
+               startIcon={<CenterFocusStrong />}
+               onClick={() => mapRef?.setView(mapCenter, mapZoom)}
+               sx={{ 
+                 borderColor: '#ff6b35', 
+                 color: '#ff6b35',
+                 '&:hover': { borderColor: '#ff8a65', backgroundColor: 'rgba(255, 107, 53, 0.1)' }
+               }}
+             >
+               Reset View
+             </Button>
+           </Box>
         </Box>
 
         {/* Enhanced Controls */}
@@ -423,13 +509,20 @@ const GPSMap = ({ data, loading }) => {
                 size="small"
                 sx={{ fontWeight: 'bold' }}
               />
-              <Chip
-                icon={<Satellite />}
-                label={`${(advancedStats.avgSatellites || 0).toFixed(0)} Sats Avg`}
-                color="info"
-                size="small"
-                sx={{ fontWeight: 'bold' }}
-              />
+                             <Chip
+                 icon={<Satellite />}
+                 label={`${(advancedStats.avgSatellites || 0).toFixed(0)} Sats Avg`}
+                 color="info"
+                 size="small"
+                 sx={{ fontWeight: 'bold' }}
+               />
+               <Chip
+                 icon={<Map />}
+                 label={`Zoom: ${mapZoom}`}
+                 color="secondary"
+                 size="small"
+                 sx={{ fontWeight: 'bold' }}
+               />
             </Box>
           </Grid>
         </Grid>
@@ -467,6 +560,134 @@ const GPSMap = ({ data, loading }) => {
               }
               label="Heatmap"
             />
+                         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+               <Typography variant="caption" sx={{ color: '#b0b0b0' }}>
+                 Zoom: {mapZoom}
+               </Typography>
+               <Button
+                 size="small"
+                 variant="outlined"
+                 onClick={() => mapRef?.setZoom(10)}
+                 sx={{ 
+                   borderColor: '#00d4ff', 
+                   color: '#00d4ff',
+                   fontSize: '0.7rem',
+                   py: 0.5,
+                   px: 1
+                 }}
+               >
+                 City
+               </Button>
+               <Button
+                 size="small"
+                 variant="outlined"
+                 onClick={() => mapRef?.setZoom(14)}
+                 sx={{ 
+                   borderColor: '#00ff88', 
+                   color: '#00ff88',
+                   fontSize: '0.7rem',
+                   py: 0.5,
+                   px: 1
+                 }}
+               >
+                 District
+               </Button>
+               <Button
+                 size="small"
+                 variant="outlined"
+                 onClick={() => mapRef?.setZoom(16)}
+                 sx={{ 
+                   borderColor: '#ffaa00', 
+                   color: '#ffaa00',
+                   fontSize: '0.7rem',
+                   py: 0.5,
+                   px: 1
+                 }}
+               >
+                 Street
+               </Button>
+               <Button
+                 size="small"
+                 variant="outlined"
+                 onClick={() => mapRef?.setZoom(18)}
+                 sx={{ 
+                   borderColor: '#ff4757', 
+                   color: '#ff4757',
+                   fontSize: '0.7rem',
+                   py: 0.5,
+                   px: 1
+                 }}
+               >
+                 Building
+               </Button>
+                               <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => mapRef?.setZoom(20)}
+                  sx={{ 
+                    borderColor: '#9c27b0', 
+                    color: '#9c27b0',
+                    fontSize: '0.7rem',
+                    py: 0.5,
+                    px: 1
+                  }}
+                >
+                  Ultra
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => mapRef?.setZoom(22)}
+                  sx={{ 
+                    borderColor: '#e91e63', 
+                    color: '#e91e63',
+                    fontSize: '0.7rem',
+                    py: 0.5,
+                    px: 1
+                  }}
+                >
+                  Max
+                </Button>
+             </Box>
+             
+             {/* Zoom Slider */}
+             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+               <Tooltip title="Zoom Out">
+                 <IconButton
+                   size="small"
+                   onClick={() => mapRef?.zoomOut()}
+                   sx={{ color: '#00d4ff' }}
+                 >
+                   <ZoomOut />
+                 </IconButton>
+               </Tooltip>
+                               <Slider
+                  value={mapZoom}
+                  onChange={(event, newValue) => mapRef?.setZoom(newValue)}
+                  min={8}
+                  max={22}
+                  step={1}
+                  sx={{
+                    width: 120,
+                    color: '#00d4ff',
+                    '& .MuiSlider-thumb': {
+                      backgroundColor: '#00d4ff',
+                    },
+                    '& .MuiSlider-track': {
+                      backgroundColor: '#00d4ff',
+                    },
+                  }}
+                />
+               <Tooltip title="Zoom In">
+                 <IconButton
+                   size="small"
+                   onClick={() => mapRef?.zoomIn()}
+                   sx={{ color: '#00d4ff' }}
+                 >
+                   <ZoomIn />
+                 </IconButton>
+               </Tooltip>
+             </Box>
           </Box>
         </Paper>
       </Box>
@@ -490,7 +711,13 @@ const GPSMap = ({ data, loading }) => {
                     zoom={mapZoom}
                     style={{ height: '100%', width: '100%' }}
                     zoomControl={false}
+                    maxZoom={22}
+                    minZoom={8}
                     ref={(ref) => setMapRef(ref)}
+                    whenCreated={(map) => {
+                      setMapRef(map);
+                      map.on('zoomend', handleZoomChange);
+                    }}
                   >
                     <TileLayer
                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

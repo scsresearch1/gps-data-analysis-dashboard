@@ -24,12 +24,14 @@ import {
   Map,
   Menu,
   Logout,
+  Palette,
 } from '@mui/icons-material';
 import SpatioTemporalAnalysis from './SpatioTemporalAnalysis';
 import MotionBehaviorAnalysis from './MotionBehaviorAnalysis';
 import GNSSSignalAnalysis from './GNSSSignalAnalysis';
 import TemporalIntegrityAnalysis from './TemporalIntegrityAnalysis';
 import GPSMap from './GPSMap';
+import DesignData from './DesignData';
 
 const drawerWidth = 240;
 
@@ -100,12 +102,18 @@ const Dashboard = ({ onLogout }) => {
       description: 'Assess data consistency and time-based patterns',
       component: <TemporalIntegrityAnalysis data={data} loading={loading} />
     },
-         {
-       label: 'GPS Positional Analysis',
-       icon: <Map />,
-       description: 'Interactive map visualization of GPS trajectories',
-       component: <GPSMap data={data} loading={loading} />
-     }
+    {
+      label: 'GPS Positional Analysis',
+      icon: <Map />,
+      description: 'Interactive map visualization of GPS trajectories',
+      component: <GPSMap data={data} loading={loading} />
+    },
+    {
+      label: 'Design Data',
+      icon: <Palette />,
+      description: 'Analyze data design patterns and architectural flow',
+      component: <DesignData data={data} loading={loading} />
+    }
   ];
 
   const drawer = (
