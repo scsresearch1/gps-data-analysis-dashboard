@@ -24,6 +24,8 @@ import {
   ZoomIn,
   ZoomOut,
   Visibility,
+  Loop,
+  Download,
 } from '@mui/icons-material';
 
 const DesignData = ({ data, loading }) => {
@@ -34,6 +36,7 @@ const DesignData = ({ data, loading }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isLooping, setIsLooping] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [videoRef, setVideoRef] = useState(null);
@@ -108,6 +111,10 @@ const DesignData = ({ data, loading }) => {
       }
       setIsFullscreen(!isFullscreen);
     }
+  };
+
+  const handleLoop = () => {
+    setIsLooping(!isLooping);
   };
 
   const handleTimeUpdate = () => {
@@ -234,6 +241,13 @@ const DesignData = ({ data, loading }) => {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [activeTab, currentImageIndex, currentProductIndex, handlePreviousImage, handleNextImage, handleZoomIn, handleZoomOut, handleZoomReset, handlePreviousProduct, handleNextProduct, handleProductZoomIn, handleProductZoomOut, handleProductZoomReset]);
 
+  // Update video loop attribute when isLooping changes
+  React.useEffect(() => {
+    if (videoRef) {
+      videoRef.loop = isLooping;
+    }
+  }, [isLooping, videoRef]);
+
     return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
@@ -288,6 +302,11 @@ const DesignData = ({ data, loading }) => {
             label="Product View" 
             iconPosition="start"
           />
+          <Tab 
+            icon={<Download />} 
+            label="Download Data" 
+            iconPosition="start"
+          />
         </Tabs>
       </Box>
 
@@ -312,6 +331,7 @@ const DesignData = ({ data, loading }) => {
                   onPlay={() => setIsPlaying(true)}
                   onPause={() => setIsPlaying(false)}
                   onEnded={() => setIsPlaying(false)}
+                  loop={isLooping}
                 />
                 
                 {/* Video Controls */}
@@ -338,6 +358,21 @@ const DesignData = ({ data, loading }) => {
                     sx={{ color: '#00d4ff', '&:hover': { color: '#00e5ff' } }}
                   >
                     <Stop />
+                  </IconButton>
+                  
+                  <IconButton
+                    onClick={handleLoop}
+                    sx={{ 
+                      color: isLooping ? '#00e5ff' : '#00d4ff', 
+                      bgcolor: isLooping ? 'rgba(0, 212, 255, 0.2)' : 'transparent',
+                      borderRadius: 1,
+                      '&:hover': { 
+                        color: '#00e5ff',
+                        bgcolor: isLooping ? 'rgba(0, 212, 255, 0.3)' : 'rgba(0, 212, 255, 0.1)'
+                      } 
+                    }}
+                  >
+                    <Loop />
                   </IconButton>
                   
                   <Box sx={{ flexGrow: 1, mx: 2 }}>
@@ -747,6 +782,72 @@ const DesignData = ({ data, loading }) => {
                   fontWeight: 'bold',
                 }}>
                   {currentProductIndex + 1} / {productImages.length}
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === 4 && (
+          /* Download Data Section */
+          <Card sx={{ bgcolor: 'rgba(26, 35, 50, 0.9)', height: '100%' }}>
+            <CardContent sx={{ p: 2, height: '100%' }}>
+              <Typography variant="h6" sx={{ color: '#00d4ff', mb: 2, display: 'flex', alignItems: 'center' }}>
+                <Download sx={{ mr: 1 }} />
+                Download Test Data
+              </Typography>
+              
+              <Box sx={{ 
+                bgcolor: 'rgba(0,0,0,0.3)', 
+                borderRadius: 2, 
+                p: 3,
+                border: '1px solid rgba(255,255,255,0.2)',
+                textAlign: 'center'
+              }}>
+                <Typography variant="body1" sx={{ color: '#ffffff', mb: 3 }}>
+                  Download the TestRun.csv file containing experimental data and analysis results.
+                </Typography>
+                
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  gap: 2 
+                }}>
+                  <Typography variant="body2" sx={{ color: '#b0b0b0', mb: 2 }}>
+                    File: TestRun.csv
+                  </Typography>
+                  
+                  <a 
+                    href="/TestRun.csv" 
+                    download="TestRun.csv"
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <IconButton
+                      sx={{ 
+                        color: '#00d4ff', 
+                        bgcolor: 'rgba(0, 212, 255, 0.2)',
+                        border: '2px solid #00d4ff',
+                        borderRadius: 2,
+                        px: 4,
+                        py: 2,
+                        fontSize: '1.1rem',
+                        fontWeight: 'bold',
+                        '&:hover': { 
+                          color: '#00e5ff',
+                          bgcolor: 'rgba(0, 212, 255, 0.3)',
+                          borderColor: '#00e5ff'
+                        } 
+                      }}
+                    >
+                      <Download sx={{ mr: 1, fontSize: '1.5rem' }} />
+                      Download TestRun.csv
+                    </IconButton>
+                  </a>
+                  
+                  <Typography variant="caption" sx={{ color: '#888888', mt: 2 }}>
+                    Click the button above to download the CSV file to your device
+                  </Typography>
                 </Box>
               </Box>
             </CardContent>
